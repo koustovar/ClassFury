@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "774553141725",
+    "project_id": "classfury0",
+    "storage_bucket": "classfury0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774553141725:android:c5c1d39de1a1f5e7d3b634",
+        "android_client_info": {
+          "package_name": "com.eduteach.eduteach"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDf_b-sjR0Vb5M_1ttnocHb_o2bu6BF0aI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

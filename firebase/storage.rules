@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    match /materials/{batchId}/{fileName} {
+      // Allow read if signed in (students in batch should have access)
+      allow read: if request.auth != null;
+      
+      // Allow upload if signed in (should ideally check if teacher)
+      allow write: if request.auth != null && request.resource.size < 20 * 1024 * 1024; // Max 20MB
+    }
+    
+    match /profile_images/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

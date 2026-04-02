@@ -1,0 +1,95 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isTeacher() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+    
+    function isStudent() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student';
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Teachers
+    match /teachers/{teacherId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == teacherId;
+    }
+
+    // Students
+    match /students/{studentId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == studentId;
+    }
+
+    // Batches
+    match /batches/{batchId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacher();
+      allow update: if (isTeacher() && resource.data.teacherId == request.auth.uid) || isStudent();
+      allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+
+    // Online Classes
+    match /online_classes/{classId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacher();
+      allow update, delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+
+    // Notices
+    match /notices/{noticeId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacher();
+      allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+
+    // Exams
+    match /exams/{examId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacher();
+      allow update, delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      
+      match /questions/{questionId} {
+        allow read, write: if isTeacher();
+      }
+      
+      match /submissions/{submissionId} {
+        allow read: if isTeacher() || (isStudent() && request.auth.uid == submissionId);
+        allow create: if isStudent();
+      }
+    }
+
+    // Materials
+    match /materials/{materialId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacher();
+      allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+
+    // Attendance (Sub-collection of Batch)
+    match /batches/{batchId}/attendance/{recordId} {
+      allow read: if isSignedIn();
+      allow write: if isTeacher();
+    }
+
+    // Join Requests
+    match /join_requests/{requestId} {
+      allow create: if isStudent();
+      allow read: if isSignedIn() && (isTeacher() || (isStudent() && request.auth.uid == resource.data.studentId));
+      allow update: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+  }
+}
