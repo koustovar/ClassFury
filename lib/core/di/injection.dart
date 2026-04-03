@@ -25,6 +25,7 @@ import '../../features/batches/presentation/bloc/batches_cubit.dart';
 import '../../features/batches/presentation/bloc/batch_requests_cubit.dart';
 import '../../features/notices/data/datasources/notices_remote_datasource.dart';
 import '../../features/notices/data/repositories/notices_repository_impl.dart';
+import '../../features/notices/presentation/bloc/notices_cubit.dart';
 import '../../features/exams/data/datasources/exams_remote_datasource.dart';
 import '../../features/exams/data/repositories/exams_repository_impl.dart';
 import '../../features/attendance/data/datasources/attendance_remote_datasource.dart';
@@ -131,5 +132,8 @@ Future<void> configureDependencies() async {
   
   getIt.registerLazySingleton<BatchRequestsCubit>(
     () => BatchRequestsCubit(getIt<BatchesRepository>()),
+  );
+  getIt.registerLazySingleton<NoticesCubit>(
+    () => NoticesCubit(getIt<NoticesRepository>()),
   );
 }

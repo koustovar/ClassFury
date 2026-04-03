@@ -7,6 +7,7 @@ abstract class NoticesRemoteDataSource {
   Future<List<NoticeModel>> getBatchNotices(String batchId);
   Future<List<NoticeModel>> getTeacherNotices(String teacherId);
   Future<void> deleteNotice(String noticeId);
+  Stream<List<NoticeModel>> watchStudentNotices(List<String> batchIds);
 }
 
 class NoticesRemoteDataSourceImpl implements NoticesRemoteDataSource {
@@ -57,5 +58,26 @@ class NoticesRemoteDataSourceImpl implements NoticesRemoteDataSource {
   @override
   Future<void> deleteNotice(String noticeId) async {
     await _firestore.collection(FirebaseConstants.noticesCollection).doc(noticeId).delete();
+  }
+
+  @override
+  Stream<List<NoticeModel>> watchStudentNotices(List<String> batchIds) {
+    if (batchIds.isEmpty) return Stream.value([]);
+    
+    // We only want notices from the last 24 hours
+    final yesterday = DateTime.now().subtract(const Duration(hours: 24));
+    
+    // Chunk batchIds if they exceed 30 (Firestore whereIn limit),
+    // though usually a student won't be in 30+ batches.
+    final limitedBatchIds = batchIds.length > 30 ? batchIds.sublist(0, 30) : batchIds;
+
+    return _firestore
+        .collection(FirebaseConstants.noticesCollection)
+        .where('batchId', whereIn: limitedBatchIds)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(yesterday))
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => 
+            snapshot.docs.map((doc) => NoticeModel.fromJson(doc.data())).toList());
   }
 }

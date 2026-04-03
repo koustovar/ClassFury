@@ -13,6 +13,10 @@ import 'package:classfury/features/batches/presentation/bloc/batches_state.dart'
 import 'package:classfury/features/batches/presentation/bloc/batch_requests_cubit.dart';
 import 'package:classfury/features/batches/presentation/bloc/batch_requests_state.dart';
 import 'package:classfury/features/batches/data/repositories/batches_repository_impl.dart';
+import 'package:classfury/features/notices/presentation/bloc/notices_cubit.dart';
+import 'package:classfury/features/notices/presentation/bloc/notices_state.dart';
+import 'package:classfury/features/notices/data/models/notice_model.dart';
+import 'package:intl/intl.dart';
 
 class StudentDashboardPage extends StatelessWidget {
   const StudentDashboardPage({super.key});
@@ -31,6 +35,42 @@ class StudentDashboardPage extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Student Portal'),
           actions: [
+            IconButton(
+              icon: BlocBuilder<NoticesCubit, NoticesState>(
+                bloc: getIt<NoticesCubit>(),
+                builder: (context, state) {
+                  int count = 0;
+                  if (state is NoticesLoaded) {
+                     count = state.notices.length;
+                  }
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(Icons.notifications_outlined),
+                      if (count > 0)
+                        Positioned(
+                          right: -4,
+                          top: -4,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              count > 9 ? '9+' : '$count',
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              onPressed: () {
+                _showNotificationsBottomSheet(context);
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.logout_rounded),
               onPressed: () {
@@ -59,8 +99,14 @@ class StudentDashboardPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              BlocBuilder<BatchesCubit, BatchesState>(
+              BlocConsumer<BatchesCubit, BatchesState>(
                 bloc: getIt<BatchesCubit>(),
+                listener: (context, state) {
+                  if (state is BatchesLoaded) {
+                    final batchIds = state.batches.map((b) => b.id).toList();
+                    getIt<NoticesCubit>().watchStudentNotices(batchIds);
+                  }
+                },
                 builder: (builderContext, state) {
                   if (state is BatchesLoading) {
                     return const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()));
@@ -240,4 +286,119 @@ class StudentDashboardPage extends StatelessWidget {
       },
     );
   }
+  void _showNotificationsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).dividerColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.notifications_rounded, color: Theme.of(context).colorScheme.primary),
+                  ),
+                  const Gap(16),
+                  Text('Recent Notices', style: AppTypography.h3),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: BlocBuilder<NoticesCubit, NoticesState>(
+                bloc: getIt<NoticesCubit>(),
+                builder: (context, state) {
+                  if (state is NoticesLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (state is NoticesLoaded) {
+                    if (state.notices.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.notifications_off_outlined, size: 60, color: Theme.of(context).hintColor),
+                            const Gap(16),
+                            Text('No recent notices', style: AppTypography.bodyLarge),
+                          ],
+                        ),
+                      );
+                    }
+                    return ListView.separated(
+                      padding: const EdgeInsets.all(20),
+                      itemCount: state.notices.length,
+                      separatorBuilder: (_, __) => const Gap(16),
+                      itemBuilder: (context, index) {
+                        final notice = state.notices[index];
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Theme.of(context).dividerTheme.color ?? AppColors.divider),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: Text(notice.title, style: AppTypography.title)),
+                                  Text(
+                                    DateFormat('hh:mm a').format(notice.createdAt),
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                              const Gap(8),
+                              Text(notice.content, style: AppTypography.bodyMedium),
+                              if (notice.attachmentUrls.isNotEmpty) ...[
+                                const Gap(12),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: notice.attachmentUrls.map((url) => Chip(
+                                    avatar: const Icon(Icons.attachment, size: 16),
+                                    label: const Text('Attachment'),
+                                    visualDensity: VisualDensity.compact,
+                                  )).toList(),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+

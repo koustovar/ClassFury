@@ -8,12 +8,16 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isTeacher() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+      return isSignedIn() && getUserData().role == 'teacher';
     }
     
     function isStudent() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student';
+      return isSignedIn() && getUserData().role == 'student';
     }
 
     // User profiles
@@ -30,14 +34,14 @@ service cloud.firestore {
     // Students
     match /students/{studentId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == studentId;
+      allow write: if (isSignedIn() && request.auth.uid == studentId) || isTeacher();
     }
 
     // Batches
     match /batches/{batchId} {
       allow read: if isSignedIn();
       allow create: if isTeacher();
-      allow update: if (isTeacher() && resource.data.teacherId == request.auth.uid) || isStudent();
+      allow update: if isTeacher() && resource.data.teacherId == request.auth.uid;
       allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
     }
 

@@ -8,6 +8,7 @@ abstract class NoticesRepository {
   Future<Either<Failure, List<NoticeModel>>> getBatchNotices(String batchId);
   Future<Either<Failure, List<NoticeModel>>> getTeacherNotices(String teacherId);
   Future<Either<Failure, void>> deleteNotice(String noticeId);
+  Stream<List<NoticeModel>> watchStudentNotices(List<String> batchIds);
 }
 
 class NoticesRepositoryImpl implements NoticesRepository {
@@ -53,5 +54,10 @@ class NoticesRepositoryImpl implements NoticesRepository {
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
+  }
+
+  @override
+  Stream<List<NoticeModel>> watchStudentNotices(List<String> batchIds) {
+    return _remoteDataSource.watchStudentNotices(batchIds);
   }
 }
