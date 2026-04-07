@@ -22,6 +22,7 @@ class NoticesRemoteDataSourceImpl implements NoticesRemoteDataSource {
     final newNotice = NoticeModel(
       id: docRef.id,
       batchId: notice.batchId,
+      batchName: notice.batchName,
       teacherId: notice.teacherId,
       title: notice.title,
       content: notice.content,
@@ -35,9 +36,26 @@ class NoticesRemoteDataSourceImpl implements NoticesRemoteDataSource {
 
   @override
   Future<List<NoticeModel>> getBatchNotices(String batchId) async {
+    final oneDayAgo = DateTime.now().subtract(const Duration(hours: 24));
+    
+    // Explicitly delete old messages
+    try {
+      final oldSnapshot = await _firestore
+          .collection(FirebaseConstants.noticesCollection)
+          .where('batchId', isEqualTo: batchId)
+          .where('createdAt', isLessThan: Timestamp.fromDate(oneDayAgo))
+          .get();
+      for (var doc in oldSnapshot.docs) {
+        doc.reference.delete();
+      }
+    } catch (e) {
+      // Ignore permissions or other errors during lazy deletion
+    }
+
     final snapshot = await _firestore
         .collection(FirebaseConstants.noticesCollection)
         .where('batchId', isEqualTo: batchId)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(oneDayAgo))
         .orderBy('createdAt', descending: true)
         .get();
         
@@ -46,9 +64,26 @@ class NoticesRemoteDataSourceImpl implements NoticesRemoteDataSource {
 
   @override
   Future<List<NoticeModel>> getTeacherNotices(String teacherId) async {
+    final oneDayAgo = DateTime.now().subtract(const Duration(hours: 24));
+
+    // Explicitly delete old messages for this teacher's notices
+    try {
+      final oldSnapshot = await _firestore
+          .collection(FirebaseConstants.noticesCollection)
+          .where('teacherId', isEqualTo: teacherId)
+          .where('createdAt', isLessThan: Timestamp.fromDate(oneDayAgo))
+          .get();
+      for (var doc in oldSnapshot.docs) {
+        doc.reference.delete();
+      }
+    } catch (e) {
+      // Ignore permissions or other errors during lazy deletion
+    }
+
     final snapshot = await _firestore
         .collection(FirebaseConstants.noticesCollection)
         .where('teacherId', isEqualTo: teacherId)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(oneDayAgo))
         .orderBy('createdAt', descending: true)
         .get();
         
@@ -64,17 +99,15 @@ class NoticesRemoteDataSourceImpl implements NoticesRemoteDataSource {
   Stream<List<NoticeModel>> watchStudentNotices(List<String> batchIds) {
     if (batchIds.isEmpty) return Stream.value([]);
     
-    // We only want notices from the last 24 hours
-    final yesterday = DateTime.now().subtract(const Duration(hours: 24));
+    // Changing from 7 days to 24 hours
+    final oneDayAgo = DateTime.now().subtract(const Duration(hours: 24));
     
-    // Chunk batchIds if they exceed 30 (Firestore whereIn limit),
-    // though usually a student won't be in 30+ batches.
     final limitedBatchIds = batchIds.length > 30 ? batchIds.sublist(0, 30) : batchIds;
 
     return _firestore
         .collection(FirebaseConstants.noticesCollection)
         .where('batchId', whereIn: limitedBatchIds)
-        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(yesterday))
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(oneDayAgo))
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => 

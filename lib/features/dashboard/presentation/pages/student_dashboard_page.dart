@@ -8,94 +8,97 @@ import 'package:classfury/core/widgets/custom_button.dart';
 import 'package:classfury/core/widgets/error_widget.dart';
 import 'package:classfury/core/di/injection.dart';
 import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:classfury/features/auth/domain/entities/user_entity.dart';
 import 'package:classfury/features/batches/presentation/bloc/batches_cubit.dart';
 import 'package:classfury/features/batches/presentation/bloc/batches_state.dart';
 import 'package:classfury/features/batches/presentation/bloc/batch_requests_cubit.dart';
 import 'package:classfury/features/batches/presentation/bloc/batch_requests_state.dart';
-import 'package:classfury/features/batches/data/repositories/batches_repository_impl.dart';
 import 'package:classfury/features/notices/presentation/bloc/notices_cubit.dart';
 import 'package:classfury/features/notices/presentation/bloc/notices_state.dart';
-import 'package:classfury/features/notices/data/models/notice_model.dart';
+import 'package:classfury/core/services/url_launcher_service.dart';
 import 'package:intl/intl.dart';
 
-class StudentDashboardPage extends StatelessWidget {
+class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final authState = getIt<AuthBloc>().state;
-    final studentId = authState is AuthAuthenticated ? authState.user.uid : '';
+  State<StudentDashboardPage> createState() => _StudentDashboardPageState();
+}
 
-    if (studentId.isNotEmpty) {
+class _StudentDashboardPageState extends State<StudentDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  void _fetchData() {
+    // Standardized use of AuthBloc from getIt to avoid context issues during init
+    final authState = getIt<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      final studentId = authState.user.uid;
+      getIt<BatchesCubit>().loadStudentBatches(studentId);
       getIt<BatchRequestsCubit>().watchBatchRequests(studentId: studentId);
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = context.read<AuthBloc>().state;
+    final user = authState is AuthAuthenticated ? authState.user : null;
 
     return Scaffold(
-        drawer: const Drawer(), // Placeholder for student profile/settings
-        appBar: AppBar(
-          title: const Text('Student Portal'),
-          actions: [
-            IconButton(
-              icon: BlocBuilder<NoticesCubit, NoticesState>(
-                bloc: getIt<NoticesCubit>(),
-                builder: (context, state) {
-                  int count = 0;
-                  if (state is NoticesLoaded) {
-                     count = state.notices.length;
-                  }
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(Icons.notifications_outlined),
-                      if (count > 0)
-                        Positioned(
-                          right: -4,
-                          top: -4,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              count > 9 ? '9+' : '$count',
-                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
+      drawer: _buildDrawer(context, user),
+      appBar: AppBar(
+        title: const Text('Student Portal'),
+        actions: [
+          IconButton(
+            icon: BlocBuilder<NoticesCubit, NoticesState>(
+              bloc: getIt<NoticesCubit>(),
+              builder: (context, state) {
+                int count = 0;
+                if (state is NoticesLoaded) {
+                  count = state.notices.length;
+                }
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(Icons.notifications_outlined),
+                    if (count > 0)
+                      Positioned(
+                        right: -4,
+                        top: -4,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            count > 9 ? '9+' : '$count',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
-                    ],
-                  );
-                },
-              ),
-              onPressed: () {
-                _showNotificationsBottomSheet(context);
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.logout_rounded),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Logout'),
-                    content: const Text('Are you sure you want to logout?'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          context.read<AuthBloc>().add(const SignOutRequested());
-                        },
-                        child: const Text('Logout', style: TextStyle(color: Colors.red)),
                       ),
-                    ],
-                  ),
+                  ],
                 );
               },
             ),
-          ],
-        ),
-        body: SingleChildScrollView(
+            onPressed: () {
+              _showNotificationsBottomSheet(context);
+            },
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          _fetchData();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -109,11 +112,14 @@ class StudentDashboardPage extends StatelessWidget {
                 },
                 builder: (builderContext, state) {
                   if (state is BatchesLoading) {
-                    return const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()));
+                    return const Center(
+                        child: Padding(
+                            padding: EdgeInsets.all(40),
+                            child: CircularProgressIndicator()));
                   } else if (state is BatchesError) {
                     return AppErrorWidget(
                       message: state.message,
-                      onRetry: () => getIt<BatchesCubit>().loadStudentBatches(studentId),
+                      onRetry: _fetchData,
                     );
                   } else if (state is BatchesLoaded) {
                     if (state.batches.isEmpty) {
@@ -122,11 +128,14 @@ class StudentDashboardPage extends StatelessWidget {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                         Padding(
-                           padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                           child: Text('My Batches', style: AppTypography.h3),
-                         ),
-                         _buildBatchList(context, state.batches),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                          child: Text('My Batches',
+                              style: AppTypography.h3.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              )),
+                        ),
+                        _buildBatchList(context, state.batches),
                       ],
                     );
                   }
@@ -136,47 +145,152 @@ class StudentDashboardPage extends StatelessWidget {
               BlocBuilder<BatchRequestsCubit, BatchRequestsState>(
                 bloc: getIt<BatchRequestsCubit>(),
                 builder: (context, state) {
-                  if (state is BatchRequestsLoaded && state.requests.isNotEmpty) {
+                  if (state is BatchRequestsLoaded &&
+                      state.requests.isNotEmpty) {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Padding(
                           padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                          child: Text('Pending Requests', style: AppTypography.h3),
+                          child: Text('Pending Requests',
+                              style: AppTypography.h3.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              )),
                         ),
                         _buildRequestsList(context, state.requests),
                       ],
                     );
                   }
-                  
-                  // Show empty state only if NO batches AND NO requests
+
                   final batchesState = getIt<BatchesCubit>().state;
-                  if (batchesState is BatchesLoaded && batchesState.batches.isEmpty && 
-                      (state is! BatchRequestsLoaded || state.requests.isEmpty)) {
+                  if (batchesState is BatchesLoaded &&
+                      batchesState.batches.isEmpty &&
+                      (state is! BatchRequestsLoaded ||
+                          state.requests.isEmpty)) {
                     return _buildEmptyState(context);
                   }
-                  
+
                   return const SizedBox.shrink();
                 },
               ),
-              const Gap(100), // Space for FAB
+              const Gap(100),
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () async {
-            final result = await context.push('/student/join');
-            if (result == true) {
-              if (context.mounted) {
-                getIt<BatchesCubit>().loadStudentBatches(studentId);
-              }
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await context.push('/student/join');
+          if (result == true) {
+            if (context.mounted) {
+              _fetchData();
             }
-          },
-          label: const Text('Join Batch'),
-          icon: const Icon(Icons.add),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          foregroundColor: Colors.white,
-        ),
+          }
+        },
+        label: const Text('Join Batch'),
+        icon: const Icon(Icons.add),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context, UserEntity? user) {
+    return Drawer(
+      child: Column(
+        children: [
+          UserAccountsDrawerHeader(
+            accountName: Text(user?.name ?? 'Student',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            accountEmail: Text(user?.email ?? ''),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: Colors.white,
+              backgroundImage:
+                  user?.photoUrl != null && user!.photoUrl.isNotEmpty
+                      ? NetworkImage(user.photoUrl)
+                      : null,
+              child: user?.photoUrl == null || user!.photoUrl.isEmpty
+                  ? Icon(Icons.person,
+                      size: 40, color: Theme.of(context).colorScheme.primary)
+                  : null,
+            ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.home_outlined),
+            title: const Text('Home'),
+            onTap: () => Navigator.pop(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.group_add_outlined),
+            title: const Text('Join New Batch'),
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/student/join');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.notifications_none_outlined),
+            title: const Text('Notifications'),
+            onTap: () {
+              Navigator.pop(context);
+              _showNotificationsBottomSheet(context);
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.settings_outlined),
+            title: const Text('Settings'),
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/settings');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.help_outline_rounded),
+            title: const Text('Help & Support'),
+            onTap: () {
+              Navigator.pop(context);
+              getIt<UrlLauncherService>().openHelpAndSupport();
+            },
+          ),
+          const Spacer(),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout_rounded, color: Colors.red),
+            title: const Text('Logout', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.pop(context);
+              _showLogoutDialog(context);
+            },
+          ),
+          const Gap(20),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<AuthBloc>().add(const SignOutRequested());
+            },
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -187,17 +301,31 @@ class StudentDashboardPage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.school_outlined, size: 80, color: Theme.of(context).hintColor),
+            Icon(Icons.school_outlined,
+                size: 80, color: Theme.of(context).hintColor),
             const Gap(24),
-            Text('No Classes Yet', style: Theme.of(context).textTheme.displaySmall),
+            Text('No Classes Yet',
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    )),
             const Gap(12),
             Text(
               'You haven\'t joined any batches. Use a join code from your teacher to get started.',
-              style: AppTypography.bodyMedium.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: AppTypography.bodyMedium.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const Gap(32),
-            CustomButton(label: 'Join Now', onPressed: () => context.push('/student/join'), isFullWidth: false),
+            CustomButton(
+                label: 'Join Now',
+                onPressed: () => context.push('/student/join'),
+                isFullWidth: false),
+            const Gap(12),
+            TextButton.icon(
+              onPressed: _fetchData,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reload'),
+            ),
           ],
         ),
       ),
@@ -214,7 +342,7 @@ class StudentDashboardPage extends StatelessWidget {
       itemBuilder: (context, index) {
         final batch = batches[index];
         final color = Color(int.parse(batch.color.replaceFirst('#', '0xFF')));
-        
+
         return InkWell(
           onTap: () => context.push('/student/batch-detail', extra: batch),
           borderRadius: BorderRadius.circular(16),
@@ -223,13 +351,18 @@ class StudentDashboardPage extends StatelessWidget {
             decoration: BoxDecoration(
               color: Theme.of(context).cardTheme.color,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Theme.of(context).dividerTheme.color ?? AppColors.divider),
+              border: Border.all(
+                  color: Theme.of(context).dividerTheme.color ??
+                      AppColors.divider),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12)),
                   child: Icon(Icons.class_, color: color, size: 20),
                 ),
                 const Gap(16),
@@ -237,8 +370,15 @@ class StudentDashboardPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(batch.name, style: AppTypography.title),
-                      Text(batch.subject, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color)),
+                      Text(batch.name,
+                          style: AppTypography.title.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          )),
+                      Text(batch.subject,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: color)),
                     ],
                   ),
                 ),
@@ -269,14 +409,20 @@ class StudentDashboardPage extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.hourglass_empty_rounded, color: Colors.orange, size: 20),
+              const Icon(Icons.hourglass_empty_rounded,
+                  color: Colors.orange, size: 20),
               const Gap(12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(request.batchName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    const Text('Waiting for teacher approval', style: TextStyle(fontSize: 12, color: Colors.orange)),
+                    Text(request.batchName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        )),
+                    const Text('Waiting for teacher approval',
+                        style: TextStyle(fontSize: 12, color: Colors.orange)),
                   ],
                 ),
               ),
@@ -286,6 +432,7 @@ class StudentDashboardPage extends StatelessWidget {
       },
     );
   }
+
   void _showNotificationsBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -315,13 +462,20 @@ class StudentDashboardPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.notifications_rounded, color: Theme.of(context).colorScheme.primary),
+                    child: Icon(Icons.notifications_rounded,
+                        color: Theme.of(context).colorScheme.primary),
                   ),
                   const Gap(16),
-                  Text('Recent Notices', style: AppTypography.h3),
+                  Text('Recent Notices',
+                      style: AppTypography.h3.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      )),
                 ],
               ),
             ),
@@ -338,9 +492,14 @@ class StudentDashboardPage extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.notifications_off_outlined, size: 60, color: Theme.of(context).hintColor),
+                            Icon(Icons.notifications_off_outlined,
+                                size: 60, color: Theme.of(context).hintColor),
                             const Gap(16),
-                            Text('No recent notices', style: AppTypography.bodyLarge),
+                            Text('No recent notices',
+                                style: AppTypography.bodyLarge.copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                )),
                           ],
                         ),
                       );
@@ -356,7 +515,9 @@ class StudentDashboardPage extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Theme.of(context).cardTheme.color,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Theme.of(context).dividerTheme.color ?? AppColors.divider),
+                            border: Border.all(
+                                color: Theme.of(context).dividerTheme.color ??
+                                    AppColors.divider),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,25 +525,78 @@ class StudentDashboardPage extends StatelessWidget {
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(child: Text(notice.title, style: AppTypography.title)),
-                                  Text(
-                                    DateFormat('hh:mm a').format(notice.createdAt),
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                  Expanded(
+                                      child: Text(
+                                          notice.title.length > 50
+                                              ? '${notice.title.substring(0, 50)}...'
+                                              : notice.title,
+                                          style: AppTypography.title.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
+                                          ))),
+                                  const Gap(8),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        DateFormat('dd MMM yyyy, hh:mm a')
+                                            .format(notice.createdAt),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall,
+                                      ),
+                                      const Gap(4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                              .withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          notice.batchName,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                               const Gap(8),
-                              Text(notice.content, style: AppTypography.bodyMedium),
+                              Text(
+                                  notice.content.length > 200
+                                      ? '${notice.content.substring(0, 200)}...'
+                                      : notice.content,
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  )),
                               if (notice.attachmentUrls.isNotEmpty) ...[
                                 const Gap(12),
                                 Wrap(
                                   spacing: 8,
                                   runSpacing: 8,
-                                  children: notice.attachmentUrls.map((url) => Chip(
-                                    avatar: const Icon(Icons.attachment, size: 16),
-                                    label: const Text('Attachment'),
-                                    visualDensity: VisualDensity.compact,
-                                  )).toList(),
+                                  children: notice.attachmentUrls
+                                      .map((url) => Chip(
+                                            avatar: const Icon(Icons.attachment,
+                                                size: 16),
+                                            label: const Text('Attachment'),
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                          ))
+                                      .toList(),
                                 ),
                               ],
                             ],
@@ -401,4 +615,3 @@ class StudentDashboardPage extends StatelessWidget {
     );
   }
 }
-

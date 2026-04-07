@@ -6,8 +6,9 @@ import 'package:classfury/app/theme/app_typography.dart';
 import 'package:classfury/core/widgets/custom_button.dart';
 import 'package:classfury/core/widgets/custom_text_field.dart';
 import 'package:classfury/core/widgets/loading_overlay.dart';
+import 'package:classfury/core/widgets/rounded_logo.dart';
 import 'package:classfury/core/utils/validators.dart';
-import '../bloc/auth_bloc.dart';
+import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -41,12 +42,17 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state is AuthAuthenticated) {
           if (state.user.role == 'teacher') {
             context.go('/teacher/dashboard');
           } else {
             context.go('/student/dashboard');
+          }
+        } else if (state is AuthStudentNeedsDetails) {
+          context.go('/student/details');
+        }
+      },
           }
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -72,7 +78,7 @@ class _LoginPageState extends State<LoginPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Icon(Icons.school_rounded, size: 80, color: Theme.of(context).colorScheme.primary),
+                          const RoundedLogo(size: 100, borderRadius: 20),
                           const SizedBox(height: 16),
                           Text(
                             'ClassFury',

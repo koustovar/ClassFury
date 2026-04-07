@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:classfury/app/theme/app_colors.dart';
 import 'package:classfury/app/theme/app_typography.dart';
 
 class CustomTextField extends StatelessWidget {
@@ -43,7 +42,9 @@ class CustomTextField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTypography.labelLarge.copyWith(color: Theme.of(context).colorScheme.onSurface),
+          style: AppTypography.labelLarge.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -55,7 +56,9 @@ class CustomTextField extends StatelessWidget {
           readOnly: readOnly,
           onTap: onTap,
           textAlign: textAlign,
-          style: style ?? AppTypography.bodyMedium,
+          style: (style ?? AppTypography.bodyMedium).copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
           maxLength: maxLength,
           decoration: InputDecoration(
             hintText: hint,

@@ -3,7 +3,6 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:classfury/app/theme/app_colors.dart';
-import 'package:classfury/app/theme/app_typography.dart';
 import 'package:classfury/core/di/injection.dart';
 import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:classfury/features/batches/presentation/bloc/batches_cubit.dart';
@@ -24,7 +23,7 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
   void initState() {
     super.initState();
     getIt<BatchRequestsCubit>().watchBatchRequests(
-      teacherId: widget.batch.teacherId, 
+      teacherId: widget.batch.teacherId,
       batchId: widget.batch.id,
     );
   }
@@ -64,11 +63,13 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
           children: [
             _buildBatchHeader(context),
             const Gap(32),
-            Text('Batch Management', style: Theme.of(context).textTheme.titleLarge),
+            Text('Batch Management',
+                style: Theme.of(context).textTheme.titleLarge),
             const Gap(16),
             _buildManagementGrid(context),
             const Gap(32),
-            Text('Quick Actions', style: Theme.of(context).textTheme.titleLarge),
+            Text('Quick Actions',
+                style: Theme.of(context).textTheme.titleLarge),
             const Gap(16),
             _buildQuickActions(context),
           ],
@@ -78,7 +79,8 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
   }
 
   Widget _buildBatchHeader(BuildContext context) {
-    final color = Color(int.parse(widget.batch.color.replaceFirst('#', '0xFF')));
+    final color =
+        Color(int.parse(widget.batch.color.replaceFirst('#', '0xFF')));
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -107,28 +109,37 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
                 children: [
                   Text(
                     widget.batch.subject,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white.withValues(alpha: 0.8)),
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelMedium
+                        ?.copyWith(color: Colors.white.withValues(alpha: 0.8)),
                   ),
                   const Gap(4),
                   Text(
                     widget.batch.name,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.vpn_key_outlined, color: Colors.white, size: 16),
+                    const Icon(Icons.vpn_key_outlined,
+                        color: Colors.white, size: 16),
                     const Gap(8),
                     Text(
                       widget.batch.joinCode,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2),
                     ),
                   ],
                 ),
@@ -138,7 +149,8 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
           const Gap(24),
           Row(
             children: [
-              _buildHeaderStat(context, '${widget.batch.studentCount}', 'Students'),
+              _buildHeaderStat(
+                  context, '${widget.batch.studentCount}', 'Students'),
               const Gap(32),
               _buildHeaderStat(context, '0', 'Lectures'),
               const Gap(32),
@@ -156,11 +168,13 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
       children: [
         Text(
           value,
-          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+              color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         ),
         Text(
           label,
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
+          style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
         ),
       ],
     );
@@ -186,7 +200,8 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
         BlocBuilder<BatchRequestsCubit, BatchRequestsState>(
           bloc: getIt<BatchRequestsCubit>(),
           builder: (context, state) {
-            final count = state is BatchRequestsLoaded ? state.requests.length : 0;
+            final count =
+                state is BatchRequestsLoaded ? state.requests.length : 0;
             return _buildStatCard(
               context,
               'Requests',
@@ -235,7 +250,8 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
         decoration: BoxDecoration(
           color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Theme.of(context).dividerTheme.color ?? AppColors.divider),
+          border: Border.all(
+              color: Theme.of(context).dividerTheme.color ?? AppColors.divider),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,14 +270,18 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
                 ),
                 if (badge != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.red,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       badge,
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
               ],
@@ -271,11 +291,17 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
               children: [
                 Text(
                   value,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Theme.of(context).hintColor),
                 ),
               ],
             ),
@@ -288,6 +314,24 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
   Widget _buildQuickActions(BuildContext context) {
     return Column(
       children: [
+        _buildActionTile(
+          context,
+          'View Materials',
+          'Browse uploaded PDFs and notes',
+          Icons.folder_shared_outlined,
+          Colors.teal,
+          () => context.push('/materials/view', extra: widget.batch),
+        ),
+        const Gap(12),
+        _buildActionTile(
+          context,
+          'Schedule Exam',
+          'Create a new test or midterm',
+          Icons.edit_note_rounded,
+          Colors.purple,
+          () => context.push('/exams/create', extra: widget.batch),
+        ),
+        const Gap(12),
         _buildActionTile(
           context,
           'Send Zoom Link',
@@ -342,7 +386,8 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).dividerTheme.color ?? AppColors.divider),
+        side: BorderSide(
+            color: Theme.of(context).dividerTheme.color ?? AppColors.divider),
       ),
     );
   }
@@ -350,7 +395,7 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
   void _showSendLinkDialog(BuildContext context) {
     final titleController = TextEditingController();
     final linkController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -360,17 +405,20 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
           children: [
             TextField(
               controller: titleController,
-              decoration: const InputDecoration(labelText: 'Title', hintText: 'e.g. Physics Extra Class'),
+              decoration: const InputDecoration(
+                  labelText: 'Title', hintText: 'e.g. Physics Extra Class'),
             ),
             const Gap(16),
             TextField(
               controller: linkController,
-              decoration: const InputDecoration(labelText: 'Link', hintText: 'https://zoom.us/j/...'),
+              decoration: const InputDecoration(
+                  labelText: 'Link', hintText: 'https://zoom.us/j/...'),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => context.pop(), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               // TODO: Implement actual link sending via notice repository
@@ -414,7 +462,8 @@ class _BatchBoardPageState extends State<BatchBoardPage> {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, foregroundColor: Colors.white),
             child: const Text('Delete Permanently'),
           ),
         ],

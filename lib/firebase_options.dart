@@ -64,7 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '774553141725',
     projectId: 'classfury0',
     storageBucket: 'classfury0.firebasestorage.app',
-    iosBundleId: 'com.eduteach.eduteach',
+    iosBundleId: 'com.classfury.classfury',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(

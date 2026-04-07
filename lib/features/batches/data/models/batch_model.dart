@@ -13,6 +13,7 @@ class BatchModel extends Equatable {
   final DateTime createdAt;
   final String color; // Hex
   final bool isActive;
+  final int tuitionFees;
 
   const BatchModel({
     required this.id,
@@ -26,9 +27,17 @@ class BatchModel extends Equatable {
     required this.createdAt,
     required this.color,
     required this.isActive,
+    required this.tuitionFees,
   });
 
   factory BatchModel.fromJson(Map<String, dynamic> json) {
+    final tuitionValue = json['tuitionFees'];
+    final tuitionFees = tuitionValue is int
+        ? tuitionValue
+        : tuitionValue is num
+            ? tuitionValue.toInt()
+            : 0;
+
     return BatchModel(
       id: json['id'] as String,
       teacherId: json['teacherId'] as String,
@@ -41,6 +50,7 @@ class BatchModel extends Equatable {
       createdAt: (json['createdAt'] as Timestamp).toDate(),
       color: json['color'] as String? ?? '#2563EB',
       isActive: json['isActive'] as bool? ?? true,
+      tuitionFees: tuitionFees,
     );
   }
 
@@ -57,9 +67,11 @@ class BatchModel extends Equatable {
       'createdAt': Timestamp.fromDate(createdAt),
       'color': color,
       'isActive': isActive,
+      'tuitionFees': tuitionFees,
     };
   }
 
   @override
-  List<Object?> get props => [id, teacherId, name, subject, joinCode, studentCount];
+  List<Object?> get props =>
+      [id, teacherId, name, subject, joinCode, studentCount, tuitionFees];
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
-import 'package:uuid/uuid.dart';
 import 'package:classfury/app/theme/app_colors.dart';
 import 'package:classfury/app/theme/app_typography.dart';
 import 'package:classfury/core/widgets/custom_button.dart';
@@ -14,15 +13,16 @@ import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:classfury/features/batches/data/models/batch_model.dart';
 import 'package:classfury/features/batches/data/repositories/batches_repository_impl.dart';
 import 'package:classfury/features/batches/presentation/bloc/batches_cubit.dart';
-import 'package:classfury/features/batches/presentation/bloc/batches_state.dart';
 import 'package:classfury/features/exams/data/models/exam_model.dart';
-import 'package:classfury/features/exams/data/models/question_model.dart';
 import 'package:classfury/features/exams/presentation/bloc/exams_cubit.dart';
 import 'package:classfury/features/exams/presentation/bloc/exams_state.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:classfury/features/exams/data/repositories/exams_repository_impl.dart';
 
 class CreateExamPage extends StatefulWidget {
-  const CreateExamPage({super.key});
+  final BatchModel? batch;
+  const CreateExamPage({super.key, this.batch});
 
   @override
   State<CreateExamPage> createState() => _CreateExamPageState();
@@ -35,39 +35,60 @@ class _CreateExamPageState extends State<CreateExamPage> {
   final _durationController = TextEditingController();
   String? _selectedBatchId;
   DateTime? _selectedStartTime;
-  
-  final List<QuestionModel> _questions = [];
+
+  final _gracePeriodController = TextEditingController(text: '10');
+  File? _questionFile;
+  String? _questionFileName;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.batch != null) {
+      _selectedBatchId = widget.batch!.id;
+    }
+  }
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
     _durationController.dispose();
+    _gracePeriodController.dispose();
     super.dispose();
   }
 
-  void _addQuestion() {
-    setState(() {
-      _questions.add(QuestionModel(
-        id: const Uuid().v4(),
-        text: '',
-        type: QuestionType.mcq,
-        options: const ['', '', '', ''],
-        correctAnswer: '',
-        marks: 1,
-      ));
-    });
+  Future<void> _pickQuestionFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+      if (result != null) {
+        setState(() {
+          _questionFile = File(result.files.single.path!);
+          _questionFileName = result.files.single.name;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking file: $e')),
+        );
+      }
+    }
   }
 
-  void _onSave() {
-    if (_formKey.currentState!.validate() && _selectedBatchId != null && _selectedStartTime != null) {
-      if (_questions.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add at least one question')));
+  void _onSave(BuildContext context) {
+    if (_formKey.currentState!.validate() &&
+        _selectedBatchId != null &&
+        _selectedStartTime != null) {
+      if (_questionFile == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please upload a question paper')));
         return;
       }
 
       final authState = context.read<AuthBloc>().state;
-      final teacherId = authState is AuthAuthenticated ? authState.user.uid : '';
+      final teacherId =
+          authState is AuthAuthenticated ? authState.user.uid : '';
 
       final exam = ExamModel(
         id: '',
@@ -77,33 +98,41 @@ class _CreateExamPageState extends State<CreateExamPage> {
         description: _descriptionController.text.trim(),
         startTime: _selectedStartTime!,
         durationMinutes: int.parse(_durationController.text),
-        questions: _questions,
+        gracePeriodMinutes: int.tryParse(_gracePeriodController.text) ?? 10,
+        questionUrl: null, // will be populated by cubit
+        questions: const [],
         status: ExamStatus.upcoming,
-        totalMarks: _questions.fold(0, (sum, q) => sum + q.marks),
+        totalMarks: 100, // Or some field
         createdAt: DateTime.now(),
       );
 
-      context.read<ExamsCubit>().createExam(exam);
+      context.read<ExamsCubit>().createExam(exam, questionFile: _questionFile);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = context.read<AuthBloc>().state;
-    final teacherId = authState is AuthAuthenticated ? authState.user.uid : '';
-
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => ExamsCubit(getIt<ExamsRepository>())),
-        BlocProvider(create: (context) => BatchesCubit(getIt<BatchesRepository>())..loadBatches(teacherId)),
+        BlocProvider(create: (context) {
+          final authState = context.read<AuthBloc>().state;
+          final teacherId =
+              authState is AuthAuthenticated ? authState.user.uid : '';
+          return BatchesCubit(getIt<BatchesRepository>())
+            ..loadBatches(teacherId);
+        }),
       ],
       child: BlocListener<ExamsCubit, ExamsState>(
         listener: (context, state) {
           if (state is ExamCreated) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Exam created successfully!')));
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Exam created successfully!')));
             context.pop(true);
           } else if (state is ExamsError) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message), backgroundColor: AppColors.error));
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.error));
           }
         },
         child: BlocBuilder<ExamsCubit, ExamsState>(
@@ -122,18 +151,24 @@ class _CreateExamPageState extends State<CreateExamPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Questions (${_questions.length})', style: AppTypography.h3),
+                          Text('Question Paper', style: AppTypography.h3),
                           TextButton.icon(
-                            onPressed: _addQuestion,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Question'),
+                            onPressed: _pickQuestionFile,
+                            icon: const Icon(Icons.upload_file),
+                            label: const Text('Upload PDF/Image'),
                           ),
                         ],
                       ),
-                      const Gap(16),
-                      ..._questions.asMap().entries.map((entry) => _buildQuestionItem(entry.key, entry.value)),
+                      if (_questionFileName != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text('Selected: $_questionFileName',
+                              style: const TextStyle(color: Colors.green)),
+                        ),
                       const Gap(48),
-                      CustomButton(label: 'Create Exam', onPressed: _onSave),
+                      CustomButton(
+                          label: 'Create Exam',
+                          onPressed: () => _onSave(context)),
                       const Gap(24),
                     ],
                   ),
@@ -156,9 +191,12 @@ class _CreateExamPageState extends State<CreateExamPage> {
           builder: (context, batchState) {
             if (batchState is BatchesLoaded) {
               return DropdownButtonFormField<String>(
-                value: _selectedBatchId,
+                initialValue: _selectedBatchId,
                 hint: const Text('Choose a batch'),
-                items: batchState.batches.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))).toList(),
+                items: batchState.batches
+                    .map((b) =>
+                        DropdownMenuItem(value: b.id, child: Text(b.name)))
+                    .toList(),
                 onChanged: (v) => setState(() => _selectedBatchId = v),
                 validator: (v) => v == null ? 'Required' : null,
               );
@@ -200,73 +238,37 @@ class _CreateExamPageState extends State<CreateExamPage> {
                         firstDate: DateTime.now(),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
                       );
-                      if (date != null && mounted) {
-                        final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                      if (date != null && context.mounted) {
+                        final time = await showTimePicker(
+                            context: context, initialTime: TimeOfDay.now());
                         if (time != null) {
                           setState(() {
-                            _selectedStartTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                            _selectedStartTime = DateTime(date.year, date.month,
+                                date.day, time.hour, time.minute);
                           });
                         }
                       }
                     },
                     icon: const Icon(Icons.calendar_today, size: 18),
-                    label: Text(_selectedStartTime == null ? 'Pick' : 'Selected'),
-                    style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+                    label:
+                        Text(_selectedStartTime == null ? 'Pick' : 'Selected'),
+                    style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50)),
                   ),
                 ],
               ),
             ),
           ],
         ),
-      ],
-    );
-  }
-
-  Widget _buildQuestionItem(int index, QuestionModel q) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                CircleAvatar(backgroundColor: AppColors.primary, radius: 14, child: Text('${index + 1}', style: const TextStyle(color: Colors.white, fontSize: 12))),
-                const Gap(12),
-                Expanded(child: TextFormField(
-                  initialValue: q.text,
-                  decoration: const InputDecoration(hintText: 'Question text...', border: InputBorder.none),
-                  onChanged: (v) => _questions[index] = QuestionModel(id: q.id, text: v, type: q.type, options: q.options, correctAnswer: q.correctAnswer, marks: q.marks),
-                )),
-                IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () => setState(() => _questions.removeAt(index))),
-              ],
-            ),
-            const Divider(),
-            ...List.generate(4, (i) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                   Radio<String>(
-                     value: '$i',
-                     groupValue: q.correctAnswer,
-                     onChanged: (v) => setState(() => _questions[index] = QuestionModel(id: q.id, text: q.text, type: q.type, options: q.options, correctAnswer: v!, marks: q.marks)),
-                   ),
-                   Expanded(child: TextFormField(
-                     initialValue: q.options[i],
-                     decoration: InputDecoration(hintText: 'Option ${i+1}', isDense: true),
-                     onChanged: (v) {
-                       final newOptions = List<String>.from(q.options);
-                       newOptions[i] = v;
-                       _questions[index] = QuestionModel(id: q.id, text: q.text, type: q.type, options: newOptions, correctAnswer: q.correctAnswer, marks: q.marks);
-                     },
-                   )),
-                ],
-              ),
-            )),
-          ],
+        const Gap(20),
+        CustomTextField(
+          label: 'Grace Period (Mins)',
+          hint: '10',
+          controller: _gracePeriodController,
+          keyboardType: TextInputType.number,
+          validator: (v) => AppValidators.validateRequired(v, 'Grace Period'),
         ),
-      ),
+      ],
     );
   }
 }

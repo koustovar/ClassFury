@@ -7,7 +7,7 @@ import 'package:classfury/core/widgets/custom_button.dart';
 import 'package:classfury/core/widgets/custom_text_field.dart';
 import 'package:classfury/core/widgets/loading_overlay.dart';
 import 'package:classfury/core/utils/validators.dart';
-import '../bloc/auth_bloc.dart';
+import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -20,6 +20,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController(text: '+91');
   final _passwordController = TextEditingController();
   String _selectedRole = 'student';
   bool _obscurePassword = true;
@@ -28,6 +29,7 @@ class _SignUpPageState extends State<SignUpPage> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -38,6 +40,7 @@ class _SignUpPageState extends State<SignUpPage> {
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
             name: _nameController.text.trim(),
+            phoneNumber: _phoneController.text.trim(),
             role: _selectedRole,
           ));
     }
@@ -53,16 +56,19 @@ class _SignUpPageState extends State<SignUpPage> {
           } else {
             context.go('/student/dashboard');
           }
+        } else if (state is AuthTeacherNeedsDetails) {
+          context.go('/teacher/details');
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: AppColors.error),
+            SnackBar(
+                content: Text(state.message), backgroundColor: AppColors.error),
           );
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           final isLoading = state is AuthLoading;
-          
+
           return LoadingOverlay(
             isLoading: isLoading,
             child: Scaffold(
@@ -82,7 +88,8 @@ class _SignUpPageState extends State<SignUpPage> {
                       children: [
                         Text(
                           'Create Account',
-                          style: AppTypography.h1.copyWith(color: Theme.of(context).colorScheme.primary),
+                          style: AppTypography.h1.copyWith(
+                              color: Theme.of(context).colorScheme.primary),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 8),
@@ -94,7 +101,8 @@ class _SignUpPageState extends State<SignUpPage> {
                         const SizedBox(height: 48),
                         _RoleSelector(
                           selectedRole: _selectedRole,
-                          onRoleChanged: (role) => setState(() => _selectedRole = role),
+                          onRoleChanged: (role) =>
+                              setState(() => _selectedRole = role),
                         ),
                         const SizedBox(height: 32),
                         CustomTextField(
@@ -115,6 +123,17 @@ class _SignUpPageState extends State<SignUpPage> {
                         ),
                         const SizedBox(height: 20),
                         CustomTextField(
+                          label: 'Phone Number',
+                          hint: '+91 00000 00000',
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          prefixIcon: Icons.phone_outlined,
+                          validator: (v) => (v == null || v.length < 13)
+                              ? 'Invalid phone number'
+                              : null,
+                        ),
+                        const SizedBox(height: 20),
+                        CustomTextField(
                           label: 'Password',
                           hint: 'Enter your password',
                           controller: _passwordController,
@@ -122,10 +141,13 @@ class _SignUpPageState extends State<SignUpPage> {
                           prefixIcon: Icons.lock_outline,
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
                               color: Theme.of(context).hintColor,
                             ),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword),
                           ),
                           validator: AppValidators.validatePassword,
                         ),
@@ -235,10 +257,14 @@ class _RoleCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 24),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : Theme.of(context).cardTheme.color,
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+              : Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? Theme.of(context).colorScheme.primary : (Theme.of(context).dividerTheme.color ?? AppColors.divider),
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : (Theme.of(context).dividerTheme.color ?? AppColors.divider),
             width: 2,
           ),
         ),
@@ -247,13 +273,17 @@ class _RoleCard extends StatelessWidget {
             Icon(
               icon,
               size: 32,
-              color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 12),
             Text(
               label,
               style: AppTypography.labelLarge.copyWith(
-                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],

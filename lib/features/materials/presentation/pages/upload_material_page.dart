@@ -54,19 +54,30 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles();
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _selectedFile = File(result.files.single.path!);
-        _fileName = result.files.single.name;
-      });
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+      if (result != null) {
+        setState(() {
+          _selectedFile = File(result.files.single.path!);
+          _fileName = result.files.single.name;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking file: $e')),
+        );
+      }
     }
   }
 
   void _onUpload(BuildContext uploadContext) {
-    if (_formKey.currentState!.validate() && _selectedBatchId != null && _selectedFile != null) {
+    if (_formKey.currentState!.validate() &&
+        _selectedBatchId != null &&
+        _selectedFile != null) {
       final authState = getIt<AuthBloc>().state;
-      final teacherId = authState is AuthAuthenticated ? authState.user.uid : '';
+      final teacherId =
+          authState is AuthAuthenticated ? authState.user.uid : '';
 
       final materialData = MaterialModel(
         id: '',
@@ -81,11 +92,12 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       );
 
       uploadContext.read<MaterialsCubit>().uploadMaterial(
-        materialData: materialData,
-        file: _selectedFile!,
-      );
+            materialData: materialData,
+            file: _selectedFile!,
+          );
     } else if (_selectedFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a file')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please select a file')));
     }
   }
 
@@ -96,65 +108,81 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => MaterialsCubit(getIt<MaterialsRepository>())),
-        BlocProvider(create: (context) => BatchesCubit(getIt<BatchesRepository>())..loadBatches(teacherId)),
+        BlocProvider(
+            create: (context) => MaterialsCubit(getIt<MaterialsRepository>())),
+        BlocProvider(
+            create: (context) => BatchesCubit(getIt<BatchesRepository>())
+              ..loadBatches(teacherId)),
       ],
       child: Builder(
         builder: (builderContext) {
           return BlocListener<MaterialsCubit, MaterialsState>(
             bloc: builderContext.read<MaterialsCubit>(),
             listener: (context, state) {
-          if (state is MaterialUploaded) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Material uploaded successfully!')));
-            context.pop();
-          } else if (state is MaterialsError) {
-             ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(
-                 content: Text('Upload failed: ${state.message}'), 
-                 backgroundColor: AppColors.error,
-                 duration: const Duration(seconds: 10),
-                 action: SnackBarAction(label: 'OK', textColor: Colors.white, onPressed: () {}),
-               ),
-             );
-          }
+              if (state is MaterialUploaded) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Material uploaded successfully!')));
+                context.pop();
+              } else if (state is MaterialsError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Upload failed: ${state.message}'),
+                    backgroundColor: AppColors.error,
+                    duration: const Duration(seconds: 10),
+                    action: SnackBarAction(
+                        label: 'OK', textColor: Colors.white, onPressed: () {}),
+                  ),
+                );
+              }
             },
             child: BlocBuilder<MaterialsCubit, MaterialsState>(
               bloc: builderContext.read<MaterialsCubit>(),
               builder: (context, state) {
-            return LoadingOverlay(
-              isLoading: state is MaterialsLoading,
-              child: Scaffold(
-                appBar: AppBar(title: const Text('Share Material')),
-                body: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildBatchSelector(),
-                        const Gap(20),
-                        _buildTypeSelector(),
-                        const Gap(20),
-                        CustomTextField(label: 'Title', hint: 'e.g. Lecture Notes - Unit 1', controller: _titleController, validator: (v) => AppValidators.validateRequired(v, 'Title')),
-                        const Gap(20),
-                        CustomTextField(label: 'Description', hint: 'Briefly describe the content...', controller: _descController, maxLines: 3),
-                        const Gap(32),
-                        _buildFilePicker(),
-                        const Gap(40),
-                        CustomButton(label: 'Upload & Share', onPressed: () => _onUpload(builderContext)),
-                      ],
+                return LoadingOverlay(
+                  isLoading: state is MaterialsLoading,
+                  child: Scaffold(
+                    appBar: AppBar(title: const Text('Share Material')),
+                    body: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildBatchSelector(),
+                            const Gap(20),
+                            _buildTypeSelector(),
+                            const Gap(20),
+                            CustomTextField(
+                                label: 'Title',
+                                hint: 'e.g. Lecture Notes - Unit 1',
+                                controller: _titleController,
+                                validator: (v) =>
+                                    AppValidators.validateRequired(v, 'Title')),
+                            const Gap(20),
+                            CustomTextField(
+                                label: 'Description',
+                                hint: 'Briefly describe the content...',
+                                controller: _descController,
+                                maxLines: 3),
+                            const Gap(32),
+                            _buildFilePicker(),
+                            const Gap(40),
+                            CustomButton(
+                                label: 'Upload & Share',
+                                onPressed: () => _onUpload(builderContext)),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            );
-          },
-        ),
-      );
-    },
-  ),
-);
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildBatchSelector() {
@@ -164,7 +192,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           return DropdownButtonFormField<String>(
             value: _selectedBatchId,
             hint: const Text('Select Batch'),
-            items: state.batches.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))).toList(),
+            items: state.batches
+                .map((b) => DropdownMenuItem(value: b.id, child: Text(b.name)))
+                .toList(),
             onChanged: (v) => setState(() => _selectedBatchId = v),
           );
         }
@@ -188,7 +218,8 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
               selected: isSelected,
               onSelected: (val) => setState(() => _selectedType = type),
               selectedColor: AppColors.primary,
-              labelStyle: TextStyle(color: isSelected ? Colors.white : AppColors.textPrimary),
+              labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : AppColors.textPrimary),
             );
           }).toList(),
         ),
@@ -205,16 +236,25 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         decoration: BoxDecoration(
           color: AppColors.background,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.divider, style: BorderStyle.solid),
+          border:
+              Border.all(color: AppColors.divider, style: BorderStyle.solid),
         ),
         child: Column(
           children: [
-            Icon(_selectedFile == null ? Icons.cloud_upload_outlined : Icons.insert_drive_file, size: 48, color: AppColors.primary),
+            Icon(
+                _selectedFile == null
+                    ? Icons.cloud_upload_outlined
+                    : Icons.insert_drive_file,
+                size: 48,
+                color: AppColors.primary),
             const Gap(16),
-            Text(_fileName ?? 'Tap to select a file (PDF, Doc, Image)', style: AppTypography.bodySmall),
+            Text(_fileName ?? 'Tap to select a file (PDF, Doc, Image)',
+                style: AppTypography.bodySmall),
             if (_selectedFile != null) ...[
               const Gap(8),
-              Text('Replace file', style: AppTypography.bodySmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              Text('Replace file',
+                  style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.primary, fontWeight: FontWeight.bold)),
             ],
           ],
         ),

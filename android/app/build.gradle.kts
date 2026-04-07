@@ -7,6 +7,9 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import org.gradle.api.tasks.compile.JavaCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 android {
     namespace = "com.eduteach.eduteach"
     compileSdk = flutter.compileSdkVersion
@@ -34,8 +37,15 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+}
+
+tasks.withType<JavaCompile> {
+    options.compilerArgs.addAll(listOf("-Xlint:-options", "-Xlint:-deprecation"))
 }
 
 flutter {

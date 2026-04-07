@@ -17,12 +17,48 @@ class ExamsCubit extends Cubit<ExamsState> {
     );
   }
 
-  Future<void> createExam(ExamModel exam) async {
+  Future<void> createExam(ExamModel exam, {dynamic questionFile}) async {
     emit(ExamsLoading());
-    final result = await _repository.createExam(exam);
+    
+    ExamModel finalExam = exam;
+    if (questionFile != null) {
+      final uploadResult = await _repository.uploadExamFile(exam.id.isEmpty ? DateTime.now().millisecondsSinceEpoch.toString() : exam.id, questionFile);
+      uploadResult.fold(
+        (failure) => emit(ExamsError(failure.message)),
+        (url) {
+          finalExam = ExamModel(
+            id: exam.id,
+            batchId: exam.batchId,
+            teacherId: exam.teacherId,
+            title: exam.title,
+            description: exam.description,
+            startTime: exam.startTime,
+            durationMinutes: exam.durationMinutes,
+            gracePeriodMinutes: exam.gracePeriodMinutes,
+            questionUrl: url,
+            questions: exam.questions,
+            status: exam.status,
+            totalMarks: exam.totalMarks,
+            createdAt: exam.createdAt,
+          );
+        }
+      );
+      if (state is ExamsError) return;
+    }
+
+    final result = await _repository.createExam(finalExam);
     result.fold(
       (failure) => emit(ExamsError(failure.message)),
       (createdExam) => emit(ExamCreated(createdExam)),
+    );
+  }
+
+  Future<void> submitAnswer(Map<String, dynamic> submission) async {
+    emit(ExamsLoading());
+    final result = await _repository.submitExamAnswer(submission);
+    result.fold(
+      (failure) => emit(ExamsError(failure.message)),
+      (_) => emit(ExamSubmitted()),
     );
   }
 

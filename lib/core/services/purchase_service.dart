@@ -1,24 +1,37 @@
-import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class PurchaseService {
-  static const _apiKey = 'goog_xxxxxxxxxxxxxxxxxxxxxxxxxxx'; // Placeholder
+  // Load API key from environment variable
+  static String get _apiKey => dotenv.env['REVENUE_CAT_API_KEY'] ?? '';
+
+  bool _initialized = false;
+
+  bool get isInitialized => _initialized;
 
   Future<void> initialize() async {
-    await Purchases.setLogLevel(LogLevel.debug);
-
-    // PurchasesConfiguration configuration;
-    // if (Platform.isAndroid) {
-    //   configuration = PurchasesConfiguration(_apiKey);
-    // } else {
-    //   configuration = PurchasesConfiguration(_apiKey); // Placeholder for iOS
-    // }
-    
-    // await Purchases.configure(configuration);
+    if (_apiKey.isEmpty) {
+      print(
+        'RevenueCat API key not configured. '
+        'Skipping purchase service initialization. '
+        'Add REVENUE_CAT_API_KEY to your .env file to enable.',
+      );
+      return;
+    }
+    try {
+      await Purchases.setLogLevel(LogLevel.debug);
+      final configuration = PurchasesConfiguration(_apiKey);
+      await Purchases.configure(configuration);
+      _initialized = true;
+    } catch (e) {
+      print('Failed to initialize RevenueCat: $e');
+      // Don't rethrow — allow the app to start without purchases
+    }
   }
 
   Future<bool> isPremium() async {
+    if (!_initialized) return false;
     try {
       final customerInfo = await Purchases.getCustomerInfo();
       return customerInfo.entitlements.all['premium']?.isActive ?? false;
@@ -28,9 +41,11 @@ class PurchaseService {
   }
 
   Future<List<Package>> getOfferings() async {
+    if (!_initialized) return [];
     try {
       final offerings = await Purchases.getOfferings();
-      if (offerings.current != null && offerings.current!.availablePackages.isNotEmpty) {
+      if (offerings.current != null &&
+          offerings.current!.availablePackages.isNotEmpty) {
         return offerings.current!.availablePackages;
       }
     } on PlatformException catch (_) {
@@ -40,9 +55,12 @@ class PurchaseService {
   }
 
   Future<bool> purchasePackage(Package package) async {
+    if (!_initialized) return false;
     try {
-        final purchaseResult = await Purchases.purchasePackage(package);
-        return purchaseResult.customerInfo.entitlements.all['premium']?.isActive ?? false;
+      final purchaseResult = await Purchases.purchasePackage(package);
+      return purchaseResult
+              .customerInfo.entitlements.all['premium']?.isActive ??
+          false;
     } on PlatformException catch (e) {
       final errorCode = PurchasesErrorHelper.getErrorCode(e);
       if (errorCode != PurchasesErrorCode.purchaseCancelledError) {
@@ -53,6 +71,7 @@ class PurchaseService {
   }
 
   Future<void> restorePurchases() async {
+    if (!_initialized) return;
     try {
       await Purchases.restorePurchases();
     } on PlatformException catch (_) {

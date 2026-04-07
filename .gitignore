@@ -1,6 +1,18 @@
 # Miscellaneous
 *.class
 *.log
+*.hprof
+hs_err_pid*
+
+# Temporary debug/analysis output
+analysis.txt
+analyze_output*.txt
+error_log.txt
+results.txt
+pub_err.txt
+pub_get_*.txt
+pub_log.txt
+pub_out.txt
 *.pyc
 *.swp
 .DS_Store

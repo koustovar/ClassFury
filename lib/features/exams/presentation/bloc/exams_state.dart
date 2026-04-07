@@ -35,3 +35,5 @@ class ExamsError extends ExamsState {
   @override
   List<Object?> get props => [message];
 }
+
+class ExamSubmitted extends ExamsState {}

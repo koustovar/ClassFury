@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 class NoticeModel extends Equatable {
   final String id;
   final String batchId;
+  final String batchName; // Added batch name
   final String teacherId;
   final String title;
   final String content;
@@ -13,6 +14,7 @@ class NoticeModel extends Equatable {
   const NoticeModel({
     required this.id,
     required this.batchId,
+    required this.batchName,
     required this.teacherId,
     required this.title,
     required this.content,
@@ -24,6 +26,7 @@ class NoticeModel extends Equatable {
     return NoticeModel(
       id: json['id'] as String,
       batchId: json['batchId'] as String,
+      batchName: json['batchName'] as String? ?? 'General',
       teacherId: json['teacherId'] as String,
       title: json['title'] as String,
       content: json['content'] as String,
@@ -36,6 +39,7 @@ class NoticeModel extends Equatable {
     return {
       'id': id,
       'batchId': batchId,
+      'batchName': batchName,
       'teacherId': teacherId,
       'title': title,
       'content': content,
@@ -45,5 +49,5 @@ class NoticeModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, batchId, title, content, createdAt];
+  List<Object?> get props => [id, batchId, batchName, title, content, createdAt];
 }

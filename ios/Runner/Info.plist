@@ -66,5 +66,18 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Permissions for Camera, Microphone, Photo Library -->
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is needed to record exams and conduct live classes.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is needed to conduct live classes and record audio.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access is needed to upload study materials and submit exams.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Photo library access is needed to save images from the app.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Contacts access is needed to share materials with other users.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location is needed to enhance your learning experience.</string>
 </dict>
 </plist>

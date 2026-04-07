@@ -9,6 +9,8 @@ abstract class ExamsRepository {
   Future<Either<Failure, List<ExamModel>>> getTeacherExams(String teacherId);
   Future<Either<Failure, void>> updateExamStatus(String examId, ExamStatus status);
   Future<Either<Failure, void>> deleteExam(String examId);
+  Future<Either<Failure, String>> uploadExamFile(String examId, dynamic file);
+  Future<Either<Failure, void>> submitExamAnswer(Map<String, dynamic> submission);
 }
 
 class ExamsRepositoryImpl implements ExamsRepository {
@@ -60,6 +62,26 @@ class ExamsRepositoryImpl implements ExamsRepository {
   Future<Either<Failure, void>> deleteExam(String examId) async {
     try {
       await _remoteDataSource.deleteExam(examId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadExamFile(String examId, dynamic file) async {
+    try {
+      final url = await _remoteDataSource.uploadExamFile(examId, file);
+      return Right(url);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> submitExamAnswer(Map<String, dynamic> submission) async {
+    try {
+      await _remoteDataSource.submitExamAnswer(submission);
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure(e.toString()));

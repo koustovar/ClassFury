@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:classfury/core/constants/firebase_constants.dart';
+import 'package:classfury/features/auth/data/models/user_model.dart';
 import '../models/batch_model.dart';
 import '../models/batch_request_model.dart';
 import 'dart:math';
@@ -11,11 +12,15 @@ abstract class BatchesRemoteDataSource {
   Future<List<BatchModel>> getStudentBatches(String studentId);
   Stream<List<BatchModel>> watchStudentBatches(String studentId);
   Future<BatchModel> getBatchByJoinCode(String joinCode);
-  Future<void> requestToJoinBatch(String studentId, String studentName, String batchId);
+  Future<void> requestToJoinBatch(
+      String studentId, String studentName, String batchId);
   Future<void> deleteBatch(String batchId, String teacherId);
   Future<void> respondToBatchRequest(String requestId, bool accept);
-  Stream<List<BatchRequestModel>> watchBatchRequests({String? teacherId, String? batchId, String? studentId});
-  Future<List<BatchRequestModel>> getBatchRequests({String? teacherId, String? batchId, String? studentId});
+  Stream<List<BatchRequestModel>> watchBatchRequests(
+      {String? teacherId, String? batchId, String? studentId});
+  Future<List<BatchRequestModel>> getBatchRequests(
+      {String? teacherId, String? batchId, String? studentId});
+  Future<List<UserModel>> getBatchStudents(List<String> studentIds);
 }
 
 class BatchesRemoteDataSourceImpl implements BatchesRemoteDataSource {
@@ -25,9 +30,10 @@ class BatchesRemoteDataSourceImpl implements BatchesRemoteDataSource {
 
   @override
   Future<BatchModel> createBatch(BatchModel batch) async {
-    final docRef = _firestore.collection(FirebaseConstants.batchesCollection).doc();
+    final docRef =
+        _firestore.collection(FirebaseConstants.batchesCollection).doc();
     final joinCode = _generateJoinCode();
-    
+
     final newBatch = BatchModel(
       id: docRef.id,
       teacherId: batch.teacherId,
@@ -40,17 +46,18 @@ class BatchesRemoteDataSourceImpl implements BatchesRemoteDataSource {
       createdAt: DateTime.now(),
       color: batch.color,
       isActive: true,
+      tuitionFees: batch.tuitionFees,
     );
 
     await docRef.set(newBatch.toJson());
-    
+
     // Update teacher's batch list
     await _firestore
         .collection(FirebaseConstants.teachersCollection)
         .doc(batch.teacherId)
         .set({
-          'batchIds': FieldValue.arrayUnion([docRef.id]),
-        }, SetOptions(merge: true));
+      'batchIds': FieldValue.arrayUnion([docRef.id]),
+    }, SetOptions(merge: true));
 
     return newBatch;
   }
@@ -61,7 +68,7 @@ class BatchesRemoteDataSourceImpl implements BatchesRemoteDataSource {
         .collection(FirebaseConstants.batchesCollection)
         .where('teacherId', isEqualTo: teacherId)
         .get();
-        
+
     return snapshot.docs.map((doc) => BatchModel.fromJson(doc.data())).toList();
   }
 
@@ -71,8 +78,9 @@ class BatchesRemoteDataSourceImpl implements BatchesRemoteDataSource {
         .collection(FirebaseConstants.batchesCollection)
         .where('teacherId', isEqualTo: teacherId)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => BatchModel.fromJson(doc.data())).toList());
+        .map((snapshot) => snapshot.docs
+            .map((doc) => BatchModel.fromJson(doc.data()))
+            .toList());
   }
 
   @override
@@ -81,7 +89,7 @@ class BatchesRemoteDataSourceImpl implements BatchesRemoteDataSource {
         .collection(FirebaseConstants.batchesCollection)
         .where('studentIds', arrayContains: studentId)
         .get();
-        
+
     return snapshot.docs.map((doc) => BatchModel.fromJson(doc.data())).toList();
   }
 
@@ -91,8 +99,9 @@ class BatchesRemoteDataSourceImpl implements BatchesRemoteDataSource {
         .collection(FirebaseConstants.batchesCollection)
         .where('studentIds', arrayContains: studentId)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => BatchModel.fromJson(doc.data())).toList());
+        .map((snapshot) => snapshot.docs
+            .map((doc) => BatchModel.fromJson(doc.data()))
+            .toList());
   }
 
   @override
@@ -103,20 +112,24 @@ class BatchesRemoteDataSourceImpl implements BatchesRemoteDataSource {
         .where('isActive', isEqualTo: true)
         .limit(1)
         .get();
-        
-    if (snapshot.docs.isEmpty) throw Exception('No active batch found with this code');
-    
+
+    if (snapshot.docs.isEmpty)
+      throw Exception('No active batch found with this code');
+
     return BatchModel.fromJson(snapshot.docs.first.data());
   }
 
   @override
-  Future<void> requestToJoinBatch(String studentId, String studentName, String batchId) async {
-    final batchRef = _firestore.collection(FirebaseConstants.batchesCollection).doc(batchId);
+  Future<void> requestToJoinBatch(
+      String studentId, String studentName, String batchId) async {
+    final batchRef =
+        _firestore.collection(FirebaseConstants.batchesCollection).doc(batchId);
     final batchSnap = await batchRef.get();
     if (!batchSnap.exists) throw Exception('Batch not found');
     final batch = BatchModel.fromJson(batchSnap.data()!);
 
-    final requestRef = _firestore.collection(FirebaseConstants.joinRequestsCollection).doc();
+    final requestRef =
+        _firestore.collection(FirebaseConstants.joinRequestsCollection).doc();
     final joinRequest = BatchRequestModel(
       id: requestRef.id,
       batchId: batchId,
@@ -132,78 +145,103 @@ class BatchesRemoteDataSourceImpl implements BatchesRemoteDataSource {
   }
 
   @override
-  Future<List<BatchRequestModel>> getBatchRequests({String? teacherId, String? batchId, String? studentId}) async {
-    Query query = _firestore.collection(FirebaseConstants.joinRequestsCollection);
-    
-    if (teacherId != null) query = query.where('teacherId', isEqualTo: teacherId);
-    if (studentId != null) query = query.where('studentId', isEqualTo: studentId);
+  Future<List<BatchRequestModel>> getBatchRequests(
+      {String? teacherId, String? batchId, String? studentId}) async {
+    Query query =
+        _firestore.collection(FirebaseConstants.joinRequestsCollection);
+
+    if (teacherId != null)
+      query = query.where('teacherId', isEqualTo: teacherId);
+    if (studentId != null)
+      query = query.where('studentId', isEqualTo: studentId);
     if (batchId != null) query = query.where('batchId', isEqualTo: batchId);
-    
+
     query = query.where('status', isEqualTo: BatchRequestStatus.pending.name);
 
     final snapshot = await query.get();
-    return snapshot.docs.map((doc) => BatchRequestModel.fromJson(doc.data() as Map<String, dynamic>)).toList();
+    return snapshot.docs
+        .map((doc) =>
+            BatchRequestModel.fromJson(doc.data() as Map<String, dynamic>))
+        .toList();
   }
 
   @override
-  Stream<List<BatchRequestModel>> watchBatchRequests({String? teacherId, String? batchId, String? studentId}) {
-    Query query = _firestore.collection(FirebaseConstants.joinRequestsCollection);
-    
-    if (teacherId != null) query = query.where('teacherId', isEqualTo: teacherId);
-    if (studentId != null) query = query.where('studentId', isEqualTo: studentId);
+  Stream<List<BatchRequestModel>> watchBatchRequests(
+      {String? teacherId, String? batchId, String? studentId}) {
+    Query query =
+        _firestore.collection(FirebaseConstants.joinRequestsCollection);
+
+    if (teacherId != null)
+      query = query.where('teacherId', isEqualTo: teacherId);
+    if (studentId != null)
+      query = query.where('studentId', isEqualTo: studentId);
     if (batchId != null) query = query.where('batchId', isEqualTo: batchId);
-    
+
     query = query.where('status', isEqualTo: BatchRequestStatus.pending.name);
 
-    return query.snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => BatchRequestModel.fromJson(doc.data() as Map<String, dynamic>)).toList());
+    return query.snapshots().map((snapshot) => snapshot.docs
+        .map((doc) =>
+            BatchRequestModel.fromJson(doc.data() as Map<String, dynamic>))
+        .toList());
   }
 
   @override
   Future<void> respondToBatchRequest(String requestId, bool accept) async {
-    final requestRef = _firestore.collection(FirebaseConstants.joinRequestsCollection).doc(requestId);
-    
+    final requestRef = _firestore
+        .collection(FirebaseConstants.joinRequestsCollection)
+        .doc(requestId);
+
     await _firestore.runTransaction((transaction) async {
       final requestSnap = await transaction.get(requestRef);
       if (!requestSnap.exists) throw Exception('Request not found');
-      
-      final joinRequest = BatchRequestModel.fromJson(requestSnap.data() as Map<String, dynamic>);
-      
+
+      final joinRequest = BatchRequestModel.fromJson(
+          requestSnap.data() as Map<String, dynamic>);
+
       if (accept) {
-        final batchRef = _firestore.collection(FirebaseConstants.batchesCollection).doc(joinRequest.batchId);
-        
+        final batchRef = _firestore
+            .collection(FirebaseConstants.batchesCollection)
+            .doc(joinRequest.batchId);
+
         transaction.update(batchRef, {
           'studentIds': FieldValue.arrayUnion([joinRequest.studentId]),
           'studentCount': FieldValue.increment(1),
         });
-        
+
         transaction.set(
-          _firestore.collection(FirebaseConstants.studentsCollection).doc(joinRequest.studentId),
+          _firestore
+              .collection(FirebaseConstants.studentsCollection)
+              .doc(joinRequest.studentId),
           {
             'batchIds': FieldValue.arrayUnion([joinRequest.batchId]),
             'teacherIds': FieldValue.arrayUnion([joinRequest.teacherId]),
           },
           SetOptions(merge: true),
         );
-        
-        transaction.update(requestRef, {'status': BatchRequestStatus.accepted.name});
+
+        transaction
+            .update(requestRef, {'status': BatchRequestStatus.accepted.name});
       } else {
-        transaction.update(requestRef, {'status': BatchRequestStatus.rejected.name});
+        transaction
+            .update(requestRef, {'status': BatchRequestStatus.rejected.name});
       }
     });
   }
 
   @override
   Future<void> deleteBatch(String batchId, String teacherId) async {
-    final batchRef = _firestore.collection(FirebaseConstants.batchesCollection).doc(batchId);
-    
+    final batchRef =
+        _firestore.collection(FirebaseConstants.batchesCollection).doc(batchId);
+
     await _firestore.runTransaction((transaction) async {
       // 1. Delete batch document
       transaction.delete(batchRef);
-      
+
       // 2. Remove batch from teacher's batch list
       transaction.update(
-        _firestore.collection(FirebaseConstants.teachersCollection).doc(teacherId),
+        _firestore
+            .collection(FirebaseConstants.teachersCollection)
+            .doc(teacherId),
         {
           'batchIds': FieldValue.arrayRemove([batchId]),
         },
@@ -211,8 +249,21 @@ class BatchesRemoteDataSourceImpl implements BatchesRemoteDataSource {
     });
   }
 
+  @override
+  Future<List<UserModel>> getBatchStudents(List<String> studentIds) async {
+    if (studentIds.isEmpty) return [];
+
+    final snapshot = await _firestore
+        .collection(FirebaseConstants.usersCollection)
+        .where('uid', whereIn: studentIds)
+        .get();
+
+    return snapshot.docs.map((doc) => UserModel.fromJson(doc.data())).toList();
+  }
+
   String _generateJoinCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid O, 0, I, 1
-    return List.generate(6, (index) => chars[Random().nextInt(chars.length)]).join();
+    return List.generate(6, (index) => chars[Random().nextInt(chars.length)])
+        .join();
   }
 }

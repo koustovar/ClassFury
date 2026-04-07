@@ -7,19 +7,24 @@ import 'package:classfury/app/theme/app_typography.dart';
 import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:classfury/core/di/injection.dart';
 import 'package:classfury/features/batches/data/repositories/batches_repository_impl.dart';
-import '../bloc/dashboard_cubit.dart';
-import '../bloc/dashboard_state.dart';
+import 'package:classfury/features/exams/data/repositories/exams_repository_impl.dart';
+import 'package:classfury/features/dashboard/presentation/bloc/dashboard_cubit.dart';
+import 'package:classfury/features/dashboard/presentation/bloc/dashboard_state.dart';
 
 class TeacherDashboardPage extends StatelessWidget {
   const TeacherDashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Standardize AuthBloc access
     final authState = context.read<AuthBloc>().state;
     final teacherId = authState is AuthAuthenticated ? authState.user.uid : '';
 
     return BlocProvider(
-      create: (context) => DashboardCubit(getIt<BatchesRepository>())..loadDashboardData(teacherId),
+      create: (context) => DashboardCubit(
+        getIt<BatchesRepository>(),
+        getIt<ExamsRepository>(),
+      )..loadDashboardData(teacherId),
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: CustomScrollView(
@@ -33,20 +38,26 @@ class TeacherDashboardPage extends StatelessWidget {
                   const Gap(24),
                   const _QuickActionsGrid(),
                   const Gap(24),
-                  _buildSectionHeader(context, 'Upcoming Classes', () => context.push('/batches')),
+                  _buildSectionHeader(context, 'Upcoming Classes',
+                      () => context.push('/batches')),
                   const Gap(12),
-                  const _PlaceholderCard(title: 'No classes scheduled for today', icon: Icons.video_camera_front_outlined),
+                  const _PlaceholderCard(
+                      title: 'No classes scheduled for today',
+                      icon: Icons.video_camera_front_outlined),
                   const Gap(24),
                   _buildSectionHeader(context, 'Recent Notices', () {}),
                   const Gap(12),
-                  const _PlaceholderCard(title: 'No recent notices', icon: Icons.campaign_outlined),
+                  const _PlaceholderCard(
+                      title: 'No recent notices',
+                      icon: Icons.campaign_outlined),
                   const Gap(40),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: OutlinedButton.icon(
                       onPressed: () => _showLogoutDialog(context),
                       icon: const Icon(Icons.logout, color: AppColors.error),
-                      label: const Text('Logout', style: TextStyle(color: AppColors.error)),
+                      label: const Text('Logout',
+                          style: TextStyle(color: AppColors.error)),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.error),
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -74,7 +85,8 @@ class TeacherDashboardPage extends StatelessWidget {
         titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
         title: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
-            final name = state is AuthAuthenticated ? state.user.name : 'Teacher';
+            final name =
+                state is AuthAuthenticated ? state.user.name : 'Teacher';
             return Text(
               'Hello, $name 👋',
               style: AppTypography.h3.copyWith(color: Colors.white),
@@ -86,7 +98,7 @@ class TeacherDashboardPage extends StatelessWidget {
             gradient: LinearGradient(
               colors: [
                 Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -96,7 +108,8 @@ class TeacherDashboardPage extends StatelessWidget {
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+          icon:
+              const Icon(Icons.notifications_none_rounded, color: Colors.white),
           onPressed: () {},
         ),
         IconButton(
@@ -107,7 +120,8 @@ class TeacherDashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title, VoidCallback onSeeAll) {
+  Widget _buildSectionHeader(
+      BuildContext context, String title, VoidCallback onSeeAll) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -115,7 +129,10 @@ class TeacherDashboardPage extends StatelessWidget {
         const Spacer(),
         TextButton(
           onPressed: onSeeAll,
-          child: Text('See All', style: AppTypography.bodySmall.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+          child: Text('See All',
+              style: AppTypography.bodySmall.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -128,7 +145,9 @@ class TeacherDashboardPage extends StatelessWidget {
         title: const Text('Logout'),
         content: const Text('Are you sure you want to logout?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
@@ -161,9 +180,19 @@ class _StatsRow extends StatelessWidget {
               ),
             ),
             const Gap(12),
-            Expanded(child: _StatCard(label: 'Students', value: '${state.totalStudents}', icon: Icons.school_rounded, color: AppColors.green)),
+            Expanded(
+                child: _StatCard(
+                    label: 'Students',
+                    value: '${state.totalStudents}',
+                    icon: Icons.school_rounded,
+                    color: AppColors.green)),
             const Gap(12),
-            Expanded(child: _StatCard(label: 'Exams', value: '${state.totalExams}', icon: Icons.quiz_rounded, color: AppColors.orange)),
+            Expanded(
+                child: _StatCard(
+                    label: 'Exams',
+                    value: '${state.totalExams}',
+                    icon: Icons.quiz_rounded,
+                    color: AppColors.orange)),
           ],
         );
       },
@@ -178,7 +207,12 @@ class _StatCard extends StatelessWidget {
   final Color color;
   final VoidCallback? onTap;
 
-  const _StatCard({required this.label, required this.value, required this.icon, required this.color, this.onTap});
+  const _StatCard(
+      {required this.label,
+      required this.value,
+      required this.icon,
+      required this.color,
+      this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +224,8 @@ class _StatCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerTheme.color ?? AppColors.divider),
+          border: Border.all(
+              color: Theme.of(context).dividerTheme.color ?? AppColors.divider),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.02),
@@ -249,7 +284,8 @@ class _QuickActionsGrid extends StatelessWidget {
             childAspectRatio: 1,
           ),
           itemCount: actions.length,
-          itemBuilder: (context, index) => _QuickActionCard(action: actions[index]),
+          itemBuilder: (context, index) =>
+              _QuickActionCard(action: actions[index]),
         ),
       ],
     );
@@ -269,13 +305,27 @@ class _QuickActionCard extends StatelessWidget {
 
   void _handleAction(BuildContext context) {
     switch (action.label) {
-      case 'Create Batch': context.push('/batches/create'); break;
-      case 'New Notice': context.push('/notices/create'); break;
-      case 'Schedule Exam': context.push('/exams/create'); break;
-      case 'Take Attendance': context.push('/attendance/take'); break;
-      case 'Online Class': context.push('/classes/schedule'); break;
-      case 'Progress': context.push('/progress'); break;
-      case 'Materials': context.push('/materials/upload'); break;
+      case 'Create Batch':
+        context.push('/batches/create');
+        break;
+      case 'New Notice':
+        context.push('/notices/create');
+        break;
+      case 'Schedule Exam':
+        context.push('/exams/create');
+        break;
+      case 'Take Attendance':
+        context.push('/attendance/take');
+        break;
+      case 'Online Class':
+        context.push('/classes/schedule');
+        break;
+      case 'Progress':
+        context.push('/progress');
+        break;
+      case 'Materials':
+        context.push('/materials/upload');
+        break;
     }
   }
 
@@ -288,7 +338,8 @@ class _QuickActionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Theme.of(context).dividerTheme.color ?? AppColors.divider),
+          border: Border.all(
+              color: Theme.of(context).dividerTheme.color ?? AppColors.divider),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -305,9 +356,9 @@ class _QuickActionCard extends StatelessWidget {
             Text(
               action.label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -330,13 +381,19 @@ class _PlaceholderCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerTheme.color ?? AppColors.divider, style: BorderStyle.solid),
+        border: Border.all(
+            color: Theme.of(context).dividerTheme.color ?? AppColors.divider,
+            style: BorderStyle.solid),
       ),
       child: Column(
         children: [
           Icon(icon, color: Theme.of(context).hintColor, size: 40),
           const Gap(12),
-          Text(title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).hintColor)),
+          Text(title,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: Theme.of(context).hintColor)),
         ],
       ),
     );

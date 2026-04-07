@@ -2,54 +2,75 @@ import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:dio/dio.dart';
-import '../services/notification_service.dart';
-import '../services/purchase_service.dart';
-import '../../app/theme/bloc/theme_cubit.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:classfury/core/services/notification_service.dart';
+import 'package:classfury/core/services/purchase_service.dart';
+import 'package:classfury/core/services/url_launcher_service.dart';
+import 'package:classfury/app/theme/bloc/theme_cubit.dart';
 
-import '../../features/auth/data/datasources/auth_remote_datasource.dart';
-import '../../features/auth/data/repositories/auth_repository_impl.dart';
-import '../../features/auth/domain/repositories/auth_repository.dart';
-import '../../features/auth/domain/usecases/sign_in_usecase.dart';
-import '../../features/auth/domain/usecases/sign_up_usecase.dart';
-import '../../features/auth/domain/usecases/sign_out_usecase.dart';
-import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
-import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:classfury/features/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:classfury/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:classfury/features/auth/domain/repositories/auth_repository.dart';
+import 'package:classfury/features/auth/domain/usecases/sign_in_usecase.dart';
+import 'package:classfury/features/auth/domain/usecases/sign_up_usecase.dart';
+import 'package:classfury/features/auth/domain/usecases/sign_out_usecase.dart';
+import 'package:classfury/features/auth/domain/usecases/get_current_user_usecase.dart';
+import 'package:classfury/features/auth/domain/usecases/update_profile_usecase.dart';
+import 'package:classfury/features/auth/domain/usecases/save_student_details_usecase.dart';
+import 'package:classfury/features/auth/domain/usecases/has_student_details_usecase.dart';
+import 'package:classfury/features/auth/domain/usecases/save_teacher_details_usecase.dart';
+import 'package:classfury/features/auth/domain/usecases/has_teacher_details_usecase.dart';
+import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 
-import '../../features/batches/data/datasources/batches_remote_datasource.dart';
-import '../../features/batches/data/repositories/batches_repository_impl.dart';
-import '../../features/batches/presentation/bloc/batches_cubit.dart';
-import '../../features/batches/presentation/bloc/batch_requests_cubit.dart';
-import '../../features/notices/data/datasources/notices_remote_datasource.dart';
-import '../../features/notices/data/repositories/notices_repository_impl.dart';
-import '../../features/notices/presentation/bloc/notices_cubit.dart';
-import '../../features/exams/data/datasources/exams_remote_datasource.dart';
-import '../../features/exams/data/repositories/exams_repository_impl.dart';
-import '../../features/attendance/data/datasources/attendance_remote_datasource.dart';
-import '../../features/attendance/data/repositories/attendance_repository_impl.dart';
-import '../../features/classes/data/datasources/classes_remote_datasource.dart';
-import '../../features/classes/data/repositories/classes_repository_impl.dart';
-import '../../features/materials/data/datasources/materials_remote_datasource.dart';
-import '../../features/materials/data/repositories/materials_repository_impl.dart';
-import '../../features/analytics/data/repositories/analytics_repository_impl.dart';
+import 'package:classfury/features/batches/data/datasources/batches_remote_datasource.dart';
+import 'package:classfury/features/batches/data/repositories/batches_repository_impl.dart';
+import 'package:classfury/features/batches/presentation/bloc/batches_cubit.dart';
+import 'package:classfury/features/batches/presentation/bloc/batch_requests_cubit.dart';
+import 'package:classfury/features/notices/data/datasources/notices_remote_datasource.dart';
+import 'package:classfury/features/notices/data/repositories/notices_repository_impl.dart';
+import 'package:classfury/features/notices/presentation/bloc/notices_cubit.dart';
+import 'package:classfury/features/exams/data/datasources/exams_remote_datasource.dart';
+import 'package:classfury/features/exams/data/repositories/exams_repository_impl.dart';
+import 'package:classfury/features/exams/presentation/bloc/exams_cubit.dart';
+import 'package:classfury/features/attendance/data/datasources/attendance_remote_datasource.dart';
+import 'package:classfury/features/attendance/data/repositories/attendance_repository_impl.dart';
+import 'package:classfury/features/classes/data/datasources/classes_remote_datasource.dart';
+import 'package:classfury/features/classes/data/repositories/classes_repository_impl.dart';
+import 'package:classfury/features/materials/data/datasources/materials_remote_datasource.dart';
+import 'package:classfury/features/materials/data/repositories/materials_repository_impl.dart';
+import 'package:classfury/features/materials/presentation/bloc/materials_cubit.dart';
+import 'package:classfury/features/analytics/data/repositories/analytics_repository_impl.dart';
 
 final getIt = GetIt.instance;
 
 @InjectableInit()
 Future<void> configureDependencies() async {
+  // External
+  final sharedPreferences = await SharedPreferences.getInstance();
+  getIt.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
+  getIt.registerLazySingleton<Dio>(() => Dio());
+
   // Firebase
   getIt.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
-  getIt.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
+  getIt.registerLazySingleton<FirebaseFirestore>(
+      () => FirebaseFirestore.instance);
   getIt.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
+  getIt.registerLazySingleton<FirebaseMessaging>(
+      () => FirebaseMessaging.instance);
+  // GoogleSignIn - v7.2.0 handles initialization via platform channels
+  // No direct instantiation needed in DI - access via GoogleSignIn methods directly
+  // Uncomment and fix if your app needs specific GoogleSignIn configuration
+  // getIt.registerSingleton<GoogleSignIn>(...);
+
+  // Services
   getIt.registerLazySingleton<NotificationService>(() => NotificationService());
   getIt.registerLazySingleton<PurchaseService>(() => PurchaseService());
-  getIt.registerLazySingleton<FirebaseMessaging>(() => FirebaseMessaging.instance);
-  getIt.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn());
-  getIt.registerLazySingleton<ThemeCubit>(() => ThemeCubit());
-  getIt.registerLazySingleton<Dio>(() => Dio());
+  getIt.registerLazySingleton<UrlLauncherService>(() => UrlLauncherService());
+  getIt.registerLazySingleton<ThemeCubit>(
+      () => ThemeCubit(getIt<SharedPreferences>()));
 
   // Data Sources
   getIt.registerLazySingleton<AuthRemoteDataSource>(
@@ -65,7 +86,7 @@ Future<void> configureDependencies() async {
     () => NoticesRemoteDataSourceImpl(getIt<FirebaseFirestore>()),
   );
   getIt.registerLazySingleton<ExamsRemoteDataSource>(
-    () => ExamsRemoteDataSourceImpl(getIt<FirebaseFirestore>()),
+    () => ExamsRemoteDataSourceImpl(getIt<FirebaseFirestore>(), getIt<Dio>()),
   );
   getIt.registerLazySingleton<AttendanceRemoteDataSource>(
     () => AttendanceRemoteDataSourceImpl(getIt<FirebaseFirestore>()),
@@ -110,11 +131,24 @@ Future<void> configureDependencies() async {
   );
 
   // Use Cases
-  getIt.registerLazySingleton<SignUpUseCase>(() => SignUpUseCase(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<SignInUseCase>(() => SignInUseCase(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<SignOutUseCase>(() => SignOutUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<SignUpUseCase>(
+      () => SignUpUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<SignInUseCase>(
+      () => SignInUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<SignOutUseCase>(
+      () => SignOutUseCase(getIt<AuthRepository>()));
   getIt.registerLazySingleton<GetCurrentUserUseCase>(
       () => GetCurrentUserUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<UpdateProfileUseCase>(
+      () => UpdateProfileUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<SaveStudentDetailsUseCase>(
+      () => SaveStudentDetailsUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<HasStudentDetailsUseCase>(
+      () => HasStudentDetailsUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<SaveTeacherDetailsUseCase>(
+      () => SaveTeacherDetailsUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<HasTeacherDetailsUseCase>(
+      () => HasTeacherDetailsUseCase(getIt<AuthRepository>()));
 
   // Blocs
   getIt.registerLazySingleton<AuthBloc>(
@@ -123,17 +157,31 @@ Future<void> configureDependencies() async {
       signInUseCase: getIt<SignInUseCase>(),
       signOutUseCase: getIt<SignOutUseCase>(),
       getCurrentUserUseCase: getIt<GetCurrentUserUseCase>(),
+      updateProfileUseCase: getIt<UpdateProfileUseCase>(),
+      saveStudentDetailsUseCase: getIt<SaveStudentDetailsUseCase>(),
+      hasStudentDetailsUseCase: getIt<HasStudentDetailsUseCase>(),
+      saveTeacherDetailsUseCase: getIt<SaveTeacherDetailsUseCase>(),
+      hasTeacherDetailsUseCase: getIt<HasTeacherDetailsUseCase>(),
     ),
   );
 
   getIt.registerLazySingleton<BatchesCubit>(
     () => BatchesCubit(getIt<BatchesRepository>()),
   );
-  
+
   getIt.registerLazySingleton<BatchRequestsCubit>(
     () => BatchRequestsCubit(getIt<BatchesRepository>()),
   );
   getIt.registerLazySingleton<NoticesCubit>(
     () => NoticesCubit(getIt<NoticesRepository>()),
+  );
+
+  // Inject ExamsCubit and MaterialsCubit
+  getIt.registerFactory<ExamsCubit>(
+    () => ExamsCubit(getIt<ExamsRepository>()),
+  );
+
+  getIt.registerFactory<MaterialsCubit>(
+    () => MaterialsCubit(getIt<MaterialsRepository>()),
   );
 }

@@ -24,6 +24,7 @@ class NoticesCubit extends Cubit<NoticesState> {
 
   Future<void> createNotice({
     required String batchId,
+    required String batchName,
     required String teacherId,
     required String title,
     required String content,
@@ -33,6 +34,7 @@ class NoticesCubit extends Cubit<NoticesState> {
     final result = await _repository.createNotice(NoticeModel(
       id: '',
       batchId: batchId,
+      batchName: batchName,
       teacherId: teacherId,
       title: title,
       content: content,

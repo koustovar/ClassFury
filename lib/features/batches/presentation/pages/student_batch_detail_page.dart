@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:classfury/app/theme/app_colors.dart';
 import 'package:classfury/app/theme/app_typography.dart';
@@ -96,7 +98,17 @@ class _NoticesTab extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(notice.title, style: AppTypography.title),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(child: Text(notice.title, style: AppTypography.title)),
+                          Text(
+                            DateFormat('dd MMM yyyy, hh:mm a').format(notice.createdAt),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
+                          ),
+                        ],
+                      ),
                       const Gap(8),
                       Text(notice.content, style: AppTypography.bodyMedium),
                     ],
@@ -135,7 +147,7 @@ class _ExamsTab extends StatelessWidget {
                 subtitle: Text('Status: ${exam.status.name.toUpperCase()}'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () {
-                   // TODO: Take Exam logic
+                   context.push('/exams/student', extra: exam);
                 },
               );
             },

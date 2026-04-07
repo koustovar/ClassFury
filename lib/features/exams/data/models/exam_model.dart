@@ -12,6 +12,8 @@ class ExamModel extends Equatable {
   final String description;
   final DateTime startTime;
   final int durationMinutes;
+  final int gracePeriodMinutes;
+  final String? questionUrl;
   final List<QuestionModel> questions;
   final ExamStatus status;
   final int totalMarks;
@@ -25,6 +27,8 @@ class ExamModel extends Equatable {
     required this.description,
     required this.startTime,
     required this.durationMinutes,
+    required this.gracePeriodMinutes,
+    this.questionUrl,
     required this.questions,
     required this.status,
     required this.totalMarks,
@@ -40,6 +44,8 @@ class ExamModel extends Equatable {
       description: json['description'] as String,
       startTime: (json['startTime'] as Timestamp).toDate(),
       durationMinutes: json['durationMinutes'] as int,
+      gracePeriodMinutes: json['gracePeriodMinutes'] as int? ?? 10, // default 10
+      questionUrl: json['questionUrl'] as String?,
       questions: (json['questions'] as List)
           .map((q) => QuestionModel.fromJson(q as Map<String, dynamic>))
           .toList(),
@@ -58,6 +64,8 @@ class ExamModel extends Equatable {
       'description': description,
       'startTime': Timestamp.fromDate(startTime),
       'durationMinutes': durationMinutes,
+      'gracePeriodMinutes': gracePeriodMinutes,
+      'questionUrl': questionUrl,
       'questions': questions.map((q) => q.toJson()).toList(),
       'status': status.name,
       'totalMarks': totalMarks,

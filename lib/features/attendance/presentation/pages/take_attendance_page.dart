@@ -8,7 +8,6 @@ import 'package:classfury/core/widgets/custom_button.dart';
 import 'package:classfury/core/widgets/loading_overlay.dart';
 import 'package:classfury/core/di/injection.dart';
 import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:classfury/features/batches/data/models/batch_model.dart';
 import 'package:classfury/features/batches/data/repositories/batches_repository_impl.dart';
 import 'package:classfury/features/batches/presentation/bloc/batches_cubit.dart';
 import 'package:classfury/features/batches/presentation/bloc/batches_state.dart';

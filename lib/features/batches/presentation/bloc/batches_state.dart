@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 import 'package:classfury/features/batches/data/models/batch_model.dart';
-import 'package:classfury/features/batches/data/models/batch_request_model.dart';
 
 abstract class BatchesState extends Equatable {
   const BatchesState();
