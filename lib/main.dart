@@ -8,7 +8,7 @@ import 'package:classfury/app/theme/app_theme.dart';
 import 'package:classfury/app/theme/bloc/theme_cubit.dart';
 import 'package:classfury/core/di/injection.dart';
 import 'package:classfury/core/services/notification_service.dart';
-import 'package:classfury/core/services/purchase_service.dart';
+import 'package:classfury/core/services/payment_service.dart';
 import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 
 void main() async {
@@ -37,9 +37,9 @@ void main() async {
   }
 
   try {
-    await getIt<PurchaseService>().initialize();
+    getIt<PaymentService>().initialize();
   } catch (e) {
-    debugPrint('Warning: PurchaseService init failed: $e');
+    debugPrint('Warning: PaymentService init failed: $e');
   }
 
   runApp(const ClassFuryApp());
@@ -60,17 +60,33 @@ class ClassFuryApp extends StatelessWidget {
           create: (context) => getIt<ThemeCubit>(),
         ),
       ],
-      child: BlocBuilder<ThemeCubit, ThemeMode>(
-        builder: (context, themeMode) {
-          return MaterialApp.router(
-            title: 'ClassFury',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: themeMode,
-            routerConfig: appRouter,
-          );
+      child: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthUnauthenticated) {
+            appRouter.go('/auth/login');
+          } else if (state is AuthAuthenticated) {
+            final currentLocation =
+                appRouter.routerDelegate.currentConfiguration.uri.toString();
+            if (currentLocation.startsWith('/auth')) {
+              final dashboardPath = state.user.role == 'teacher'
+                  ? '/teacher/dashboard'
+                  : '/student/dashboard';
+              appRouter.go(dashboardPath);
+            }
+          }
         },
+        child: BlocBuilder<ThemeCubit, ThemeMode>(
+          builder: (context, themeMode) {
+            return MaterialApp.router(
+              title: 'ClassFury',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeMode,
+              routerConfig: appRouter,
+            );
+          },
+        ),
       ),
     );
   }

@@ -9,6 +9,7 @@ import 'package:classfury/features/auth/domain/usecases/save_student_details_use
 import 'package:classfury/features/auth/domain/usecases/has_student_details_usecase.dart';
 import 'package:classfury/features/auth/domain/usecases/save_teacher_details_usecase.dart';
 import 'package:classfury/features/auth/domain/usecases/has_teacher_details_usecase.dart';
+import 'package:classfury/features/auth/domain/usecases/update_premium_status_usecase.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -25,6 +26,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final HasStudentDetailsUseCase _hasStudentDetailsUseCase;
   final SaveTeacherDetailsUseCase _saveTeacherDetailsUseCase;
   final HasTeacherDetailsUseCase _hasTeacherDetailsUseCase;
+  final UpdatePremiumStatusUseCase _updatePremiumStatusUseCase;
 
   AuthBloc({
     required SignUpUseCase signUpUseCase,
@@ -36,6 +38,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required HasStudentDetailsUseCase hasStudentDetailsUseCase,
     required SaveTeacherDetailsUseCase saveTeacherDetailsUseCase,
     required HasTeacherDetailsUseCase hasTeacherDetailsUseCase,
+    required UpdatePremiumStatusUseCase updatePremiumStatusUseCase,
   })  : _signUpUseCase = signUpUseCase,
         _signInUseCase = signInUseCase,
         _signOutUseCase = signOutUseCase,
@@ -45,6 +48,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         _hasStudentDetailsUseCase = hasStudentDetailsUseCase,
         _saveTeacherDetailsUseCase = saveTeacherDetailsUseCase,
         _hasTeacherDetailsUseCase = hasTeacherDetailsUseCase,
+        _updatePremiumStatusUseCase = updatePremiumStatusUseCase,
         super(AuthInitial()) {
     on<SignUpRequested>(_onSignUp);
     on<SignInRequested>(_onSignIn);
@@ -54,6 +58,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SaveStudentDetailsRequested>(_onSaveStudentDetails);
     on<CheckStudentDetailsRequested>(_onCheckStudentDetails);
     on<SaveTeacherDetailsRequested>(_onSaveTeacherDetails);
+    on<UpdatePremiumStatusRequested>(_onUpdatePremiumStatus);
   }
 
   Future<void> _onSignUp(SignUpRequested event, Emitter<AuthState> emit) async {
@@ -71,7 +76,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         if (user.role == 'teacher') {
           emit(AuthTeacherNeedsDetails(user));
         } else {
-          emit(AuthAuthenticated(user));
+          emit(AuthStudentNeedsDetails(user));
         }
       },
     );
@@ -155,6 +160,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             photoUrl: event.photoUrl ?? currentState.user.photoUrl,
             createdAt: currentState.user.createdAt,
             isPremium: currentState.user.isPremium,
+            premiumSince: currentState.user.premiumSince,
             isEmailVerified: currentState.user.isEmailVerified,
           );
           emit(AuthAuthenticated(updatedUser));
@@ -181,6 +187,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  Future<void> _onCheckStudentDetails(
+      CheckStudentDetailsRequested event, Emitter<AuthState> emit) async {
+    // TODO: Implement check student details logic
+    // For now, just emit a success or something
+    emit(AuthSuccess('Student details checked'));
+  }
+
   Future<void> _onSaveTeacherDetails(
       SaveTeacherDetailsRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
@@ -198,5 +211,36 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) => emit(AuthError(failure.message)),
       (_) => emit(AuthSuccess('Teacher details saved successfully')),
     );
+  }
+
+  Future<void> _onUpdatePremiumStatus(
+      UpdatePremiumStatusRequested event, Emitter<AuthState> emit) async {
+    if (state is AuthAuthenticated) {
+      final currentState = state as AuthAuthenticated;
+      final result = await _updatePremiumStatusUseCase(
+        UpdatePremiumStatusParams(
+          uid: event.uid,
+          isPremium: event.isPremium,
+        ),
+      );
+      result.fold(
+        (failure) => emit(AuthError(failure.message)),
+        (_) {
+          final updatedUser = UserEntity(
+            uid: currentState.user.uid,
+            name: currentState.user.name,
+            email: currentState.user.email,
+            phoneNumber: currentState.user.phoneNumber,
+            role: currentState.user.role,
+            photoUrl: currentState.user.photoUrl,
+            createdAt: currentState.user.createdAt,
+            isPremium: event.isPremium,
+            premiumSince: event.isPremium ? DateTime.now().toUtc() : null,
+            isEmailVerified: currentState.user.isEmailVerified,
+          );
+          emit(AuthAuthenticated(updatedUser));
+        },
+      );
+    }
   }
 }

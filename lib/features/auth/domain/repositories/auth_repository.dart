@@ -54,4 +54,9 @@ abstract class AuthRepository {
   Future<Either<Failure, bool>> hasTeacherDetails(String uid);
 
   Future<Either<Failure, UserEntity>> getUserDetails(String uid);
+
+  Future<Either<Failure, void>> updatePremiumStatus({
+    required String uid,
+    required bool isPremium,
+  });
 }

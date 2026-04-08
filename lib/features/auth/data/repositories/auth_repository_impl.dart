@@ -167,4 +167,17 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(AuthFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> updatePremiumStatus({
+    required String uid,
+    required bool isPremium,
+  }) async {
+    try {
+      await _remoteDataSource.updatePremiumStatus(uid, isPremium);
+      return const Right(null);
+    } catch (e) {
+      return Left(AuthFailure(e.toString()));
+    }
+  }
 }

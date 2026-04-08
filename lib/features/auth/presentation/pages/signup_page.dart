@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:classfury/app/theme/app_colors.dart';
 import 'package:classfury/app/theme/app_typography.dart';
 import 'package:classfury/core/widgets/custom_button.dart';
 import 'package:classfury/core/widgets/custom_text_field.dart';
 import 'package:classfury/core/widgets/loading_overlay.dart';
 import 'package:classfury/core/utils/validators.dart';
-import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:classfury/app/router/app_router.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -52,12 +53,14 @@ class _SignUpPageState extends State<SignUpPage> {
       listener: (context, state) {
         if (state is AuthAuthenticated) {
           if (state.user.role == 'teacher') {
-            context.go('/teacher/dashboard');
+            appRouter.go('/teacher/dashboard');
           } else {
-            context.go('/student/dashboard');
+            appRouter.go('/student/dashboard');
           }
         } else if (state is AuthTeacherNeedsDetails) {
-          context.go('/teacher/details');
+          appRouter.go('/teacher/details');
+        } else if (state is AuthStudentNeedsDetails) {
+          appRouter.go('/student/details');
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

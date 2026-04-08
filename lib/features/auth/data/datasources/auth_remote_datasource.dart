@@ -37,6 +37,7 @@ abstract class AuthRemoteDataSource {
     required String profilePictureUrl,
   });
   Future<bool> hasTeacherDetails(String uid);
+  Future<void> updatePremiumStatus(String uid, bool isPremium);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -271,5 +272,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (!doc.exists) return false;
     final data = doc.data();
     return data != null && data.containsKey('name') && data['name'] != null;
+  }
+
+  @override
+  Future<void> updatePremiumStatus(String uid, bool isPremium) async {
+    await _firestore
+        .collection(FirebaseConstants.usersCollection)
+        .doc(uid)
+        .update({
+      'isPremium': isPremium,
+      'premiumSince': isPremium ? FieldValue.serverTimestamp() : null,
+    });
   }
 }

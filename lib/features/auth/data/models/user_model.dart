@@ -11,10 +11,16 @@ class UserModel extends UserEntity {
     required super.photoUrl,
     required super.createdAt,
     required super.isPremium,
+    super.premiumSince,
     super.isEmailVerified,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    Timestamp? premiumTimestamp;
+    if (json['premiumSince'] is Timestamp) {
+      premiumTimestamp = json['premiumSince'] as Timestamp;
+    }
+
     return UserModel(
       uid: json['uid'] as String,
       name: json['name'] as String,
@@ -24,12 +30,13 @@ class UserModel extends UserEntity {
       photoUrl: json['photoUrl'] as String? ?? '',
       createdAt: (json['createdAt'] as Timestamp).toDate(),
       isPremium: json['isPremium'] as bool? ?? false,
+      premiumSince: premiumTimestamp?.toDate(),
       isEmailVerified: json['isEmailVerified'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final data = {
       'uid': uid,
       'name': name,
       'email': email,
@@ -40,6 +47,12 @@ class UserModel extends UserEntity {
       'isPremium': isPremium,
       'isEmailVerified': isEmailVerified,
     };
+
+    if (premiumSince != null) {
+      data['premiumSince'] = Timestamp.fromDate(premiumSince!);
+    }
+
+    return data;
   }
 
   factory UserModel.fromEntity(UserEntity entity) {
@@ -52,6 +65,7 @@ class UserModel extends UserEntity {
       photoUrl: entity.photoUrl,
       createdAt: entity.createdAt,
       isPremium: entity.isPremium,
+      premiumSince: entity.premiumSince,
       isEmailVerified: entity.isEmailVerified,
     );
   }
@@ -65,6 +79,7 @@ class UserModel extends UserEntity {
     String? photoUrl,
     DateTime? createdAt,
     bool? isPremium,
+    DateTime? premiumSince,
     bool? isEmailVerified,
   }) {
     return UserModel(
@@ -76,6 +91,7 @@ class UserModel extends UserEntity {
       photoUrl: photoUrl ?? this.photoUrl,
       createdAt: createdAt ?? this.createdAt,
       isPremium: isPremium ?? this.isPremium,
+      premiumSince: premiumSince ?? this.premiumSince,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
     );
   }

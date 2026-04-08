@@ -55,4 +55,9 @@ class AppTypography {
         fontSize: 14,
         fontWeight: FontWeight.w600,
       );
+
+  // Legacy names for compatibility
+  static TextStyle get headline6 => h3;
+  static TextStyle get bodyText1 => bodyLarge;
+  static TextStyle get bodyText2 => bodyMedium;
 }

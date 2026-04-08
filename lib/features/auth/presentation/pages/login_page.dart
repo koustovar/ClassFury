@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:classfury/app/theme/app_colors.dart';
 import 'package:classfury/app/theme/app_typography.dart';
 import 'package:classfury/core/widgets/custom_button.dart';
@@ -8,7 +9,7 @@ import 'package:classfury/core/widgets/custom_text_field.dart';
 import 'package:classfury/core/widgets/loading_overlay.dart';
 import 'package:classfury/core/widgets/rounded_logo.dart';
 import 'package:classfury/core/utils/validators.dart';
-import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:classfury/app/router/app_router.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -45,25 +46,23 @@ class _LoginPageState extends State<LoginPage> {
       listener: (context, state) async {
         if (state is AuthAuthenticated) {
           if (state.user.role == 'teacher') {
-            context.go('/teacher/dashboard');
+            appRouter.go('/teacher/dashboard');
           } else {
-            context.go('/student/dashboard');
+            appRouter.go('/student/dashboard');
           }
         } else if (state is AuthStudentNeedsDetails) {
-          context.go('/student/details');
-        }
-      },
-          }
+          appRouter.go('/student/details');
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: AppColors.error),
+            SnackBar(
+                content: Text(state.message), backgroundColor: AppColors.error),
           );
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           final isLoading = state is AuthLoading;
-          
+
           return LoadingOverlay(
             isLoading: isLoading,
             child: Scaffold(
@@ -82,7 +81,8 @@ class _LoginPageState extends State<LoginPage> {
                           const SizedBox(height: 16),
                           Text(
                             'ClassFury',
-                            style: AppTypography.h1.copyWith(color: Theme.of(context).colorScheme.primary),
+                            style: AppTypography.h1.copyWith(
+                                color: Theme.of(context).colorScheme.primary),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
@@ -109,10 +109,13 @@ class _LoginPageState extends State<LoginPage> {
                             prefixIcon: Icons.lock_outline,
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
                                 color: Theme.of(context).hintColor,
                               ),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword),
                             ),
                             validator: AppValidators.validatePassword,
                           ),
@@ -123,7 +126,9 @@ class _LoginPageState extends State<LoginPage> {
                               onPressed: () {}, // TODO: Forgot Password
                               child: Text(
                                 'Forgot Password?',
-                                style: AppTypography.bodySmall.copyWith(color: Theme.of(context).colorScheme.primary),
+                                style: AppTypography.bodySmall.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.primary),
                               ),
                             ),
                           ),
@@ -146,7 +151,8 @@ class _LoginPageState extends State<LoginPage> {
                                 child: Text(
                                   'Sign Up',
                                   style: AppTypography.bodySmall.copyWith(
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),

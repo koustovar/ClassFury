@@ -134,3 +134,16 @@ class SaveTeacherDetailsRequested extends AuthEvent {
         profilePictureUrl
       ];
 }
+
+class UpdatePremiumStatusRequested extends AuthEvent {
+  final String uid;
+  final bool isPremium;
+
+  const UpdatePremiumStatusRequested({
+    required this.uid,
+    required this.isPremium,
+  });
+
+  @override
+  List<Object?> get props => [uid, isPremium];
+}

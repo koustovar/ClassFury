@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 import 'package:classfury/app/theme/app_colors.dart';
 import 'package:classfury/app/theme/app_typography.dart';
 import 'package:classfury/app/theme/bloc/theme_cubit.dart';
@@ -20,7 +21,7 @@ class SettingsPage extends StatelessWidget {
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
           final user = authState is AuthAuthenticated ? authState.user : null;
-          
+
           return ListView(
             padding: const EdgeInsets.symmetric(vertical: 20),
             children: [
@@ -31,7 +32,8 @@ class SettingsPage extends StatelessWidget {
                     title: const Text('Dark Mode'),
                     secondary: const Icon(Icons.dark_mode_outlined),
                     value: mode == ThemeMode.dark,
-                    onChanged: (value) => context.read<ThemeCubit>().toggleTheme(),
+                    onChanged: (value) =>
+                        context.read<ThemeCubit>().toggleTheme(),
                   );
                 },
               ),
@@ -47,7 +49,8 @@ class SettingsPage extends StatelessWidget {
                 title: 'Notifications',
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Notification settings coming soon')),
+                    const SnackBar(
+                        content: Text('Notification settings coming soon')),
                   );
                 },
               ),
@@ -56,10 +59,17 @@ class SettingsPage extends StatelessWidget {
                 title: 'Security',
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Security settings coming soon')),
+                    const SnackBar(
+                        content: Text('Security settings coming soon')),
                   );
                 },
               ),
+              if (!(user?.isPremium ?? false))
+                _buildSettingsTile(
+                  icon: Icons.star_outline,
+                  title: 'Upgrade to Premium',
+                  onTap: () => context.push('/premium'),
+                ),
               const Divider(),
               _buildSectionHeader(context, 'App'),
               _buildSettingsTile(
@@ -77,7 +87,8 @@ class SettingsPage extends StatelessWidget {
                     applicationVersion: '1.0.0',
                     applicationIcon: const FlutterLogo(),
                     children: [
-                      const Text('ClassFury is an all-in-one education platform for teachers and students.'),
+                      const Text(
+                          'ClassFury is an all-in-one education platform for teachers and students.'),
                     ],
                   );
                 },
@@ -88,7 +99,8 @@ class SettingsPage extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () => _showLogoutDialog(context),
                   icon: const Icon(Icons.logout, color: AppColors.error),
-                  label: const Text('Logout', style: TextStyle(color: AppColors.error)),
+                  label: const Text('Logout',
+                      style: TextStyle(color: AppColors.error)),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.error),
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -99,7 +111,8 @@ class SettingsPage extends StatelessWidget {
               Center(
                 child: Text(
                   'Version 1.0.0',
-                  style: AppTypography.bodySmall.copyWith(color: Theme.of(context).hintColor),
+                  style: AppTypography.bodySmall
+                      .copyWith(color: Theme.of(context).hintColor),
                 ),
               ),
             ],
@@ -158,10 +171,13 @@ class SettingsPage extends StatelessWidget {
             onPressed: () {
               final newName = nameController.text.trim();
               if (newName.isNotEmpty) {
-                context.read<AuthBloc>().add(UpdateProfileRequested(name: newName));
+                context
+                    .read<AuthBloc>()
+                    .add(UpdateProfileRequested(name: newName));
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Profile updated successfully!')),
+                  const SnackBar(
+                      content: Text('Profile updated successfully!')),
                 );
               }
             },
@@ -188,7 +204,8 @@ class SettingsPage extends StatelessWidget {
               Navigator.pop(context);
               context.read<AuthBloc>().add(const SignOutRequested());
             },
-            child: const Text('Logout', style: TextStyle(color: AppColors.error)),
+            child:
+                const Text('Logout', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),

@@ -102,6 +102,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (user != null && !user.isPremium) _buildPremiumBanner(context),
               BlocConsumer<BatchesCubit, BatchesState>(
                 bloc: getIt<BatchesCubit>(),
                 listener: (context, state) {
@@ -239,6 +240,15 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
               _showNotificationsBottomSheet(context);
             },
           ),
+          if (user != null && !user.isPremium)
+            ListTile(
+              leading: const Icon(Icons.star_outline),
+              title: const Text('Upgrade to Premium'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/premium');
+              },
+            ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.settings_outlined),
@@ -268,6 +278,47 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           ),
           const Gap(20),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumBanner(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      child: InkWell(
+        onTap: () => context.push('/premium'),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.star, size: 32, color: Colors.amber),
+              const Gap(16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Upgrade to Premium',
+                        style: AppTypography.title.copyWith(
+                          fontWeight: FontWeight.bold,
+                        )),
+                    const Gap(4),
+                    Text('Unlock premium features and priority support.',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        )),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -7,7 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:classfury/core/services/notification_service.dart';
-import 'package:classfury/core/services/purchase_service.dart';
+import 'package:classfury/core/services/payment_service.dart';
 import 'package:classfury/core/services/url_launcher_service.dart';
 import 'package:classfury/app/theme/bloc/theme_cubit.dart';
 
@@ -23,6 +23,7 @@ import 'package:classfury/features/auth/domain/usecases/save_student_details_use
 import 'package:classfury/features/auth/domain/usecases/has_student_details_usecase.dart';
 import 'package:classfury/features/auth/domain/usecases/save_teacher_details_usecase.dart';
 import 'package:classfury/features/auth/domain/usecases/has_teacher_details_usecase.dart';
+import 'package:classfury/features/auth/domain/usecases/update_premium_status_usecase.dart';
 import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 
 import 'package:classfury/features/batches/data/datasources/batches_remote_datasource.dart';
@@ -67,7 +68,7 @@ Future<void> configureDependencies() async {
 
   // Services
   getIt.registerLazySingleton<NotificationService>(() => NotificationService());
-  getIt.registerLazySingleton<PurchaseService>(() => PurchaseService());
+  getIt.registerLazySingleton<PaymentService>(() => PaymentService());
   getIt.registerLazySingleton<UrlLauncherService>(() => UrlLauncherService());
   getIt.registerLazySingleton<ThemeCubit>(
       () => ThemeCubit(getIt<SharedPreferences>()));
@@ -149,6 +150,8 @@ Future<void> configureDependencies() async {
       () => SaveTeacherDetailsUseCase(getIt<AuthRepository>()));
   getIt.registerLazySingleton<HasTeacherDetailsUseCase>(
       () => HasTeacherDetailsUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<UpdatePremiumStatusUseCase>(
+      () => UpdatePremiumStatusUseCase(getIt<AuthRepository>()));
 
   // Blocs
   getIt.registerLazySingleton<AuthBloc>(
@@ -162,6 +165,7 @@ Future<void> configureDependencies() async {
       hasStudentDetailsUseCase: getIt<HasStudentDetailsUseCase>(),
       saveTeacherDetailsUseCase: getIt<SaveTeacherDetailsUseCase>(),
       hasTeacherDetailsUseCase: getIt<HasTeacherDetailsUseCase>(),
+      updatePremiumStatusUseCase: getIt<UpdatePremiumStatusUseCase>(),
     ),
   );
 

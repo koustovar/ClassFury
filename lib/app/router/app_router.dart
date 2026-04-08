@@ -9,6 +9,7 @@ import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:classfury/features/dashboard/presentation/pages/teacher_dashboard_page.dart';
 import 'package:classfury/features/dashboard/presentation/pages/student_dashboard_page.dart';
 import 'package:classfury/features/dashboard/presentation/pages/settings_page.dart';
+import 'package:classfury/features/dashboard/presentation/pages/premium_page.dart';
 import 'package:classfury/features/batches/presentation/pages/batches_page.dart';
 import 'package:classfury/features/batches/presentation/pages/create_batch_page.dart';
 import 'package:classfury/features/batches/presentation/pages/batch_board_page.dart';
@@ -209,6 +210,10 @@ final appRouter = GoRouter(
     ),
 
     // Setting Route
+    GoRoute(
+      path: '/premium',
+      builder: (context, state) => const PremiumPage(),
+    ),
     GoRoute(
       path: '/settings',
       builder: (context, state) => const SettingsPage(),

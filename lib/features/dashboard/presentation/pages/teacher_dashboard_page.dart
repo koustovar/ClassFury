@@ -36,6 +36,8 @@ class TeacherDashboardPage extends StatelessWidget {
                 delegate: SliverChildListDelegate([
                   const _StatsRow(),
                   const Gap(24),
+                  const _PremiumBanner(),
+                  const Gap(24),
                   const _QuickActionsGrid(),
                   const Gap(24),
                   _buildSectionHeader(context, 'Upcoming Classes',
@@ -157,6 +159,61 @@ class TeacherDashboardPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PremiumBanner extends StatelessWidget {
+  const _PremiumBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        if (state is AuthAuthenticated && !state.user.isPremium) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: InkWell(
+              onTap: () => context.push('/premium'),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.star, size: 32, color: Colors.amber),
+                    const Gap(16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Upgrade to Premium',
+                              style: AppTypography.title.copyWith(
+                                fontWeight: FontWeight.bold,
+                              )),
+                          const Gap(4),
+                          Text('Get advanced tools and priority support.',
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
+                              )),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
     );
   }
 }

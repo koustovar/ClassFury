@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:classfury/app/theme/app_colors.dart';
@@ -10,7 +11,7 @@ import 'package:classfury/core/widgets/custom_button.dart';
 import 'package:classfury/core/widgets/custom_text_field.dart';
 import 'package:classfury/core/widgets/loading_overlay.dart';
 import 'package:classfury/core/utils/validators.dart';
-import 'package:classfury/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:classfury/app/router/app_router.dart';
 import 'package:classfury/features/auth/domain/entities/user_entity.dart';
 import 'package:dio/dio.dart';
 import 'package:classfury/core/constants/firebase_constants.dart';
@@ -146,7 +147,7 @@ class _TeacherDetailsPageState extends State<TeacherDetailsPage> {
       body: BlocListener<AuthBloc, dynamic>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            context.go('/teacher/dashboard');
+            appRouter.go('/teacher/dashboard');
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -210,27 +211,31 @@ class _TeacherDetailsPageState extends State<TeacherDetailsPage> {
                       const Gap(24),
                       CustomTextField(
                         controller: _nameController,
-                        labelText: 'Full Name',
-                        validator: Validators.required,
+                        label: 'Full Name',
+                        validator: (v) =>
+                            AppValidators.validateRequired(v, 'Full Name'),
                       ),
                       const Gap(16),
                       CustomTextField(
                         controller: _phoneController,
-                        labelText: 'Phone Number',
+                        label: 'Phone Number',
                         keyboardType: TextInputType.phone,
-                        validator: Validators.phone,
+                        validator: (v) =>
+                            AppValidators.validateRequired(v, 'Phone Number'),
                       ),
                       const Gap(16),
                       CustomTextField(
                         controller: _subjectController,
-                        labelText: 'Subject',
-                        validator: Validators.required,
+                        label: 'Subject',
+                        validator: (v) =>
+                            AppValidators.validateRequired(v, 'Subject'),
                       ),
                       const Gap(16),
                       CustomTextField(
                         controller: _qualificationController,
-                        labelText: 'Qualification',
-                        validator: Validators.required,
+                        label: 'Qualification',
+                        validator: (v) =>
+                            AppValidators.validateRequired(v, 'Qualification'),
                       ),
                       const Gap(16),
                       DropdownButtonFormField<String>(
@@ -266,7 +271,8 @@ class _TeacherDetailsPageState extends State<TeacherDetailsPage> {
                           border: OutlineInputBorder(),
                           alignLabelWithHint: true,
                         ),
-                        validator: Validators.required,
+                        validator: (v) => AppValidators.validateRequired(
+                            v, 'Brief Description'),
                       ),
                       const Gap(24),
                       Container(
@@ -288,7 +294,7 @@ class _TeacherDetailsPageState extends State<TeacherDetailsPage> {
                       ),
                       const Gap(32),
                       CustomButton(
-                        text: 'Save Details',
+                        label: 'Save Details',
                         onPressed: _onSubmit,
                       ),
                     ],
